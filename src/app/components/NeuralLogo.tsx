@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface NeuralLogoProps {
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
   animated?: boolean;
 }
@@ -12,6 +12,7 @@ export const NeuralLogo: React.FC<NeuralLogoProps> = ({
   animated = true 
 }) => {
   const sizeMap = {
+    xs: 'w-12 h-auto',
     sm: 'w-24 h-auto',
     md: 'w-36 h-auto',
     lg: 'w-48 h-auto',
