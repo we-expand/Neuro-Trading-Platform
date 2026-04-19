@@ -41,7 +41,7 @@ export function Sidebar({ currentView, onViewChange, isAdmin, onLogout }: Sideba
           handleViewChange('dashboard');
         }}
       >
-        <NeuralLogo className="!w-[200px]" />
+        <NeuralLogo className="!w-[500px]" />
       </div>
 
       {/* Main Navigation */}
