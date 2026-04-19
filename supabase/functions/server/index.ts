@@ -58,6 +58,29 @@ async function getMetaApiToken(bodyToken?: string): Promise<string | null> {
     return finalToken;
 }
 
+// Admin email allowlist — deve espelhar adminConfig.ts no frontend
+const ADMIN_EMAILS_SERVER = ['clbrcouto@gmail.com'];
+
+async function verifyAdminToken(c: any): Promise<{ userId: string; email: string } | null> {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) return null;
+
+    const token = authHeader.slice(7);
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !supabaseServiceKey) return null;
+
+    try {
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        if (error || !user?.email) return null;
+        if (!ADMIN_EMAILS_SERVER.includes(user.email.toLowerCase())) return null;
+        return { userId: user.id, email: user.email };
+    } catch {
+        return null;
+    }
+}
+
 // Enable logger
 app.use('*', logger(console.log));
 
@@ -563,6 +586,20 @@ app.post("/telemetry/track", async (c) => {
         await kv.set(key, fingerprint);
         
         return c.json({ status: "tracked", id: key });
+    } catch (e: any) {
+        return c.json({ error: e.message }, 500);
+    }
+});
+
+// Telemetry Logs Route — somente admins autenticados
+app.get("/telemetry/logs", async (c) => {
+    const admin = await verifyAdminToken(c);
+    if (!admin) {
+        return c.json({ error: "Unauthorized" }, 401);
+    }
+    try {
+        const logs = await kv.getByPrefix('access_log:');
+        return c.json({ logs });
     } catch (e: any) {
         return c.json({ error: e.message }, 500);
     }

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { projectId } from '../../../../utils/supabase/info';
+import { useAuth } from '../../contexts/AuthContext';
 import { Shield, MapPin, Smartphone, Globe, Clock, User, X, Wifi, Monitor } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -7,6 +8,7 @@ interface AccessLog {
     id: string;
     timestamp: string;
     user_email: string;
+    user_id?: string;
     ip: string;
     city: string;
     region: string;
@@ -24,12 +26,24 @@ interface AccessLog {
 export function AdminGodMode({ onClose }: { onClose: () => void }) {
     const [logs, setLogs] = useState<AccessLog[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const { session } = useAuth();
 
     useEffect(() => {
         const fetchLogs = async () => {
             try {
-                // Busca logs via Server API
-                const response = await fetch(`https://${projectId}.supabase.co/functions/v1/server/telemetry/logs`);
+                const token = session?.access_token;
+                if (!token) {
+                    setIsLoading(false);
+                    return;
+                }
+                const response = await fetch(`https://${projectId}.supabase.co/functions/v1/server/telemetry/logs`, {
+                    headers: { 'Authorization': `Bearer ${token}` },
+                });
+                if (!response.ok) {
+                    console.error("Acesso negado ou erro ao buscar logs:", response.status);
+                    setIsLoading(false);
+                    return;
+                }
                 const { logs: data } = await response.json();
                 
                 if (Array.isArray(data)) {
@@ -111,7 +125,7 @@ export function AdminGodMode({ onClose }: { onClose: () => void }) {
                                                     {new Date(log.timestamp).toLocaleString('pt-BR')}
                                                 </div>
                                                 <div className="mt-3 px-2 py-1 bg-red-500/10 rounded border border-red-500/20 w-fit text-[10px] text-red-400 font-mono">
-                                                    ID: {log.user_id.slice(0, 8)}...
+                                                    ID: {log.user_id ? log.user_id.slice(0, 8) + '...' : '—'}
                                                 </div>
                                             </div>
 

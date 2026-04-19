@@ -1,25 +1,61 @@
 #!/bin/bash
 
-# Script de deploy automático para Neural Day Trader
-# Configuração para deploy contínuo na Vercel
+# ============================================================
+# 🚀 DEPLOY AUTOMÁTICO - Neural Day Trader
+# ============================================================
+# Uso: ./deploy.sh "mensagem do commit"
+# Exemplo: ./deploy.sh "fix: logo do dashboard corrigido"
+#
+# O script faz:
+#   1. git add (todos os arquivos modificados)
+#   2. git commit com a mensagem
+#   3. git push para GitHub → Vercel faz deploy automático!
+# ============================================================
 
-echo "🚀 Iniciando deploy do Neural Day Trader..."
+set -e  # Para o script se der erro
 
-# Limpar cache antes do build
-echo "🧹 Limpando cache..."
-npm run clear-cache
+# Cor para output
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
 
-# Instalar dependências
-echo "📦 Instalando dependências..."
-npm install
+# Pega a mensagem do commit (ou usa uma padrão)
+COMMIT_MSG="${1:-"chore: atualização automática"}"
 
-# Build do projeto
-echo "🔨 Buildando projeto..."
-npm run build
+echo ""
+echo -e "${BLUE}╔══════════════════════════════════════════╗${NC}"
+echo -e "${BLUE}║    🧠 Neural Day Trader - Deploy          ║${NC}"
+echo -e "${BLUE}╚══════════════════════════════════════════╝${NC}"
+echo ""
 
-# Deploy para produção na Vercel
-echo "🌐 Fazendo deploy para produção..."
-vercel --prod
+# Verifica se tem alterações para commitar
+if [[ -z "$(git status --porcelain)" ]]; then
+  echo -e "${YELLOW}⚠️  Nenhuma alteração detectada. Nada para fazer!${NC}"
+  exit 0
+fi
 
-echo "✅ Deploy concluído com sucesso!"
-echo "🌍 Aplicação disponível em: https://www.neuraldaytrader.com"
+echo -e "${BLUE}📋 Alterações detectadas:${NC}"
+git status --short
+echo ""
+
+echo -e "${GREEN}📦 Adicionando todos os arquivos...${NC}"
+git add .
+
+echo -e "${GREEN}💾 Commitando: \"${COMMIT_MSG}\"${NC}"
+git commit -m "${COMMIT_MSG}"
+
+echo -e "${GREEN}🚀 Enviando para GitHub...${NC}"
+git push origin main
+
+echo ""
+echo -e "${GREEN}╔══════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}║  ✅ Deploy iniciado com sucesso!          ║${NC}"
+echo -e "${GREEN}║                                          ║${NC}"
+echo -e "${GREEN}║  A Vercel está buildando o projeto...    ║${NC}"
+echo -e "${GREEN}║  🌍 https://www.neuraldaytrader.com      ║${NC}"
+echo -e "${GREEN}╚══════════════════════════════════════════╝${NC}"
+echo ""
+echo -e "${BLUE}🔍 Acompanhe o deploy em: https://vercel.com/we-expand/neural_day_trader${NC}"
+echo ""

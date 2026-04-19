@@ -253,6 +253,7 @@ function AppContent() {
       case 'prop-challenge':
         return <PropChallenge />;
       case 'admin':
+        if (!isAdmin) return <Dashboard />;
         return <AdminDashboard onExit={() => setCurrentView('dashboard')} />;
       case 'dev-lab':
         return (
