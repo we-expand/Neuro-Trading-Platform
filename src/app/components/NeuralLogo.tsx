@@ -21,11 +21,13 @@ export const NeuralLogo: React.FC<NeuralLogoProps> = ({
 
   return (
     <div className={`relative inline-block ${sizeMap[size]} ${className}`}>
-      <svg 
-        id="neural-logo" 
-        xmlns="http://www.w3.org/2000/svg" 
-        xmlnsXlink="http://www.w3.org/1999/xlink" 
+      <svg
+        id="neural-logo"
+        xmlns="http://www.w3.org/2000/svg"
+        xmlnsXlink="http://www.w3.org/1999/xlink"
         viewBox="0 10 320 220"
+        width="100%"
+        height="auto"
         className="relative z-10"
       >
         <defs>
