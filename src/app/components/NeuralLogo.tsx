@@ -24,7 +24,7 @@ export const NeuralLogo: React.FC<NeuralLogoProps> = ({
         id="neural-logo" 
         xmlns="http://www.w3.org/2000/svg" 
         xmlnsXlink="http://www.w3.org/1999/xlink" 
-        viewBox="0 -50 320 280"
+        viewBox="0 10 320 220"
         className="relative z-10"
       >
         <defs>
