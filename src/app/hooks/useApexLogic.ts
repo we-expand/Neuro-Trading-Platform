@@ -995,7 +995,21 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
           calculatedLots = Math.round(calculatedLots * 100) / 100;
           const minLots = contractSpec.minLotSize;
           const maxLots = aiConfig.maxContracts; // maxContracts = max lotes permitido pelo usuário
-          const currentExposure = activeOrders.reduce((sum, o) => sum + o.contracts, 0); const availableLimit = Math.max(0, (aiConfig.maxContracts || 1.0) - currentExposure); const userMax = aiConfig.maxContracts || 1.0; const safetySize = Math.min(userMax, (currentBalance * 0.01) / 10); const contractsToUse = Math.min(Number(aiConfig.maxContracts || 1.0), 1.0);
+          const currentExposure = activeOrders.reduce((sum, o) => sum + o.contracts, 0); const availableLimit = Math.max(0, (aiConfig.maxContracts || 1.0) - currentExposure); const userMax = aiConfig.maxContracts || 1.0; const safetySize = Math.min(userMax, (currentBalance * 0.01) / 10); 
+    // --- GOVERNANÇA DE RISCO ---
+    const currentBalance = portfolio?.balance || 100;
+    const maxExposureGlobal = Number(aiConfig.maxContracts || 1.0);
+    const activeContractsCount = activeOrders.reduce((sum, o) => sum + (o.contracts || 0), 0);
+    
+    // Se já atingiu o limite de ativos simultâneos ou contratos, aborta
+    if (activeOrders.length >= (aiConfig.maxSimultaneousAssets || 2) || activeContractsCount >= maxExposureGlobal) return;
+
+    // Cálculo Proporcional: Divide o limite global pelo número de ativos permitidos
+    const perTradeLotLimit = maxExposureGlobal / (aiConfig.maxSimultaneousAssets || 2);
+    const contractsToUse = Number(Math.min(perTradeLotLimit, maxExposureGlobal - activeContractsCount).toFixed(2));
+    
+    if (contractsToUse <= 0.01) return; // Proteção contra lotes irrelevantes
+
 
           const finalTradeCapital = contractsToUse * currentPrice * contractSpec.contractSize / 100; // Margem estimada
 
