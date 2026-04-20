@@ -1073,7 +1073,7 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
     const pnlInterval = setInterval(() => {
         // Em modo DEMO: se AI estiver desligada, congelar simulação de preços e TP/SL
         if (!isActiveRef.current && configRef.current.executionMode !== 'LIVE') return;
-        if (activeOrders.length === 0) return;
+        if (!isActiveRef.current || activeOrders.length === 0) return;
 
         // Reset refs
         pnlLoopRef.current = { realizedPnL: 0, totalUnrealizedPnL: 0, totalExposure: 0 };
