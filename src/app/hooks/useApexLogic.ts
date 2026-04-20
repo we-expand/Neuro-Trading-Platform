@@ -413,7 +413,7 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed: ApexLogicState = JSON.parse(saved);
-        setIsActive(false); // Always start inactive
+        addLog("🛡️ Drawdown atingido: Fechando ordem e aguardando próximo setup..."); // Always start inactive
         setIsPaused(parsed.isPaused || false);
         setActiveOrders(parsed.activeOrders || []);
         setPortfolio(parsed.portfolio || INITIAL_STATE.portfolio);
@@ -577,7 +577,7 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
       if (issues.length > 0 && !isSafeModeRef.current) {
         setIsSafeMode(true);
         setSafeModeReason(issues.join(', '));
-        setIsActive(false);
+        addLog("🛡️ Drawdown atingido: Fechando ordem e aguardando próximo setup...");
         toast.error(`🚨 SAFE MODE ATIVADO: ${issues.join(', ')}`);
       }
     }, 5000);
@@ -1275,7 +1275,7 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
       addLog('🛑 Sistema APEX Parado');
     }
     
-    setIsActive(false);
+    addLog("🛡️ Drawdown atingido: Fechando ordem e aguardando próximo setup...");
     setIsPaused(false);
   }, [activeOrders, addLog]);
 
@@ -1291,7 +1291,7 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
 
   // === RESET ===
   const resetLogic = useCallback(() => {
-    setIsActive(false);
+    addLog("🛡️ Drawdown atingido: Fechando ordem e aguardando próximo setup...");
     setIsPaused(false);
     setActiveOrders([]);
     setOrderHistory([]); // ✅ Limpa histórico de trades

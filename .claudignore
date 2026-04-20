@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.git/
+.vercel/
+.next/
+supabase/.temp/
+*.log
+*.jpg
+*.png
+package-lock.json
