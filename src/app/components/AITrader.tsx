@@ -817,7 +817,7 @@ export function AITrader({ compact = false, onNavigate }: { compact?: boolean; o
                                   </span>
                                   {/* Contracts badge */}
                                   <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                                      {order.contracts ?? 1} {(order.contracts ?? 1) === 1 ? 'contrato' : 'contratos'}
+                                      {order.contracts?.toFixed(2) ?? "0.01"} {(order.contracts ?? 1) === 1 ? 'contrato' : 'contratos'}
                                   </span>
                                 </div>
                                 <div className="flex gap-3 text-[10px] text-slate-500 font-mono flex-wrap">
