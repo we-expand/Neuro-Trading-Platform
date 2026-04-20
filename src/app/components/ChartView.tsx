@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, lazy, Suspense } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState, lazy, Suspense } from 'react';
 import { init, dispose, getSupportedOverlays, registerOverlay, registerYAxis } from 'klinecharts';
 import type { KLineData, OverlayTemplate, AxisTemplate } from 'klinecharts';
 import { 
@@ -2558,6 +2558,17 @@ export function ChartView() {
     isInitialLoadRef.current = true;
     console.log('[ChartView] 🔄 Flag isInitialLoad resetada (novo símbolo/timeframe)');
   }, [timeframe, selectedSymbol]); // Removed currentPrice and openPrice to avoid circular dependency
+
+  // Força resize do klinecharts após o layout do DOM estabilizar
+  useLayoutEffect(() => {
+    const chart = chartInstanceRef.current;
+    if (!chart) return;
+    // Múltiplos delays para garantir que o flex layout está resolvido
+    const t1 = setTimeout(() => chart.resize(), 50);
+    const t2 = setTimeout(() => chart.resize(), 250);
+    const t3 = setTimeout(() => chart.resize(), 600);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, [timeframe, selectedSymbol]);
 
   // 🧹 MONITOR E LIMPAR OVERLAYS INDESEJADOS (Remove bolinha preta periodicamente)
   useEffect(() => {

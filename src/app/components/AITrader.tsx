@@ -77,7 +77,7 @@ export function AITrader({ compact = false, onNavigate }: { compact?: boolean; o
   }, [marketData.isConnected]);
 
   // Use the Global Context for Logic
-  const { status, toggleAI, activeOrders, portfolio, recentLogs, config, setConfig, closeHedgedPositions, resetPortfolio, updateBalance, updatePortfolioFromMT5, syncPositionsFromMT5, executionMode, setExecutionMode } = useTradingContext();
+  const { status, toggleAI, activeOrders, portfolio, recentLogs, config, setConfig, closeHedgedPositions, resetPortfolio, updateBalance, updatePortfolioFromMT5, syncPositionsFromMT5, executionMode, setExecutionMode, tradeHistory } = useTradingContext();
 
   // 🔥 AUTO-SYNC: Quando MT5 conecta, buscar saldo real automaticamente E PERIODICAMENTE
   useEffect(() => {
@@ -794,6 +794,17 @@ export function AITrader({ compact = false, onNavigate }: { compact?: boolean; o
                       </span>
                     </div>
 
+                    {/* Total de Entradas da IA */}
+                    <div className="flex flex-col">
+                      <span className="text-xs text-cyan-400/70 uppercase tracking-wider font-bold mb-2">Total de Entradas IA</span>
+                      <span className="text-2xl font-bold text-purple-400 font-mono">
+                        {(tradeHistory?.length || 0) + activeOrders.length}
+                      </span>
+                      <span className="text-xs text-slate-400/60 font-mono mt-1">
+                        {tradeHistory?.length || 0} fechadas · {activeOrders.length} abertas
+                      </span>
+                    </div>
+
                     {/* Equity Projetado */}
                     <div className="flex flex-col">
                       <span className="text-xs text-cyan-400/70 uppercase tracking-wider font-bold mb-2">Equity Projetado</span>
@@ -821,7 +832,8 @@ export function AITrader({ compact = false, onNavigate }: { compact?: boolean; o
 
                 {/* Grid de Operações */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
-                    {activeOrders.map(order => {
+                    {activeOrders.map((order, idx) => {
+                      const entryNumber = (tradeHistory?.length || 0) + idx + 1;
                         const currentPrice = order.currentPrice || order.price;
                         const priceDiffPct = order.price > 0 ? (currentPrice - order.price) / order.price : 0;
                         // Calculate Real PnL based on leverage
@@ -856,7 +868,11 @@ export function AITrader({ compact = false, onNavigate }: { compact?: boolean; o
                                     {order.side === 'LONG' ? 'COMPRADO' : 'VENDIDO'}
                                 </span>
                                 <span className="font-bold text-white text-sm">{order.symbol.replace('USDT', '/USD')}</span>
-                                {/* 🎯 NEW: Contract Count Badge */}
+                                {/* Número da entrada */}
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                                    #{entryNumber}
+                                </span>
+                                {/* 🎯 Contract Count Badge */}
                                 <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
                                     {order.amount} {order.amount === 1 ? 'contrato' : 'contratos'}
                                 </span>

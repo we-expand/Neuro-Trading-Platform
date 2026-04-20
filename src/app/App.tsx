@@ -341,7 +341,7 @@ function AppContent() {
               user={user}
             />
             
-            <main className="flex-1 overflow-auto">
+            <main className={`flex-1 ${currentView === 'chart' ? 'overflow-hidden flex flex-col' : 'overflow-auto'}`}>
               {renderContent}
             </main>
 

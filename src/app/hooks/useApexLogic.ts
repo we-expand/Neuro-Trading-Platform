@@ -1093,7 +1093,6 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
                    );
                 }
 
-                totalUnrealizedPnL += pnl;
                 totalExposure += order.amount * nextPrice * order.leverage;
 
                 // Check TP/SL apenas se DEMO. No MT5 LIVE, quem fecha é a corretora
@@ -1104,20 +1103,21 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
 
                 if (hitTP) {
                     realizedPnL += pnl;
+                    // NÃO soma ao unrealized — posição fechada vai ao balance
                     logsToAdd.push(`🎯 ALVO ATINGIDO: ${order.symbol} +$${pnl.toFixed(2)}`);
-                    // Close position
                     setOrderHistory(prev => [...prev, { ...order, currentPrice: nextPrice, currentProfit: pnl, closedAt: Date.now() }]);
                 } else if (hitSL) {
                     realizedPnL += pnl;
+                    // NÃO soma ao unrealized — posição fechada vai ao balance
                     logsToAdd.push(`🛡️ STOP ATINGIDO: ${order.symbol} ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}`);
-                    // Close position
                     setOrderHistory(prev => [...prev, { ...order, currentPrice: nextPrice, currentProfit: pnl, closedAt: Date.now() }]);
                 } else {
-                    // Keep position open WITH UPDATED PROFIT
+                    // Posição ainda aberta: soma ao unrealized P&L
+                    totalUnrealizedPnL += pnl;
                     nextActiveOrders.push({
                         ...order,
                         currentPrice: nextPrice,
-                        currentProfit: pnl, // ✅ CRITICAL: Update profit for UI display
+                        currentProfit: pnl,
                     });
                 }
             });
