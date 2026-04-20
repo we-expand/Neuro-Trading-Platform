@@ -3574,13 +3574,13 @@ export function ChartView() {
           <div 
             ref={chartContainerRef} 
             id={chartIdRef.current}
-            className="w-full bg-black relative"
-            style={{
+            className="flex-1 bg-black relative"
+            style={{ 
               minHeight: '600px',
-              height: '600px',
+              height: '100%',
               willChange: 'transform',
               transform: 'translateZ(0)',
-              paddingLeft: '0px',
+              paddingLeft: '0px', // 🎯 Sem padding - deixamos o yAxis size controlar
             }}
             onClick={(e) => {
               // 🆕 MODO TEXTO: Clicar no gráfico abre input de texto
