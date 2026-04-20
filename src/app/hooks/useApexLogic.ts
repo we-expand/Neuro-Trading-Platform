@@ -995,7 +995,7 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
           calculatedLots = Math.round(calculatedLots * 100) / 100;
           const minLots = contractSpec.minLotSize;
           const maxLots = aiConfig.maxContracts; // maxContracts = max lotes permitido pelo usuário
-          const contractsToUse = Math.min(maxLots, Math.max(minLots, calculatedLots));
+          const contractsToUse = Math.min(aiConfig.maxContracts || 1.0, 1.0);
 
           const finalTradeCapital = contractsToUse * currentPrice * contractSpec.contractSize / 100; // Margem estimada
 
