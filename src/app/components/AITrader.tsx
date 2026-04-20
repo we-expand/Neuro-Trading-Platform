@@ -513,7 +513,7 @@ export function AITrader({ compact = false, onNavigate }: { compact?: boolean; o
               ) : (
                 <>
                   <Play className="w-4 h-4" />
-                  <span className="text-xs font-bold uppercase">Iniciar AI</span>
+                  <span className="text-xs font-bold uppercase">{isActive ? "Desligar AI" : "Iniciar AI"}</span>
                 </>
               )}
             </button> 

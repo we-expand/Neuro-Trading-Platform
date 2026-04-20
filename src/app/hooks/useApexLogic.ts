@@ -816,7 +816,7 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
           }
           
           // ✅ FILTRO DE QUALIDADE: Apenas trades com confiança razoável
-          const MIN_CONFIDENCE = 45; // 🚀 REDUZIDO DE 60% PARA 45% - Muito mais oportunidades!
+          const MIN_CONFIDENCE = 0.60; // 🚀 REDUZIDO DE 60% PARA 45% - Muito mais oportunidades!
           
           if (confidenceScore < MIN_CONFIDENCE) {
             console.log(`[QUALIDADE] ❌ Setup rejeitado: ${selectedSymbol} - Score ${confidenceScore}% (mínimo ${MIN_CONFIDENCE}%)`);
