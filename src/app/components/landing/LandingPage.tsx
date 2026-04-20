@@ -221,13 +221,8 @@ export const LandingPage = ({ onLoginClick, onRegisterClick, lang, setLang }: { 
         </div>
       </section>
 
-      {/* 🔥 SOCIAL INTELLIGENCE - NOVA SEÇÃO */}
-      <section className="py-32 bg-transparent relative overflow-hidden">
-        {/* Background Effects */}
-        <div className="absolute inset-0 bg-gradient-to-b from-purple-900/10 via-transparent to-blue-900/10 pointer-events-none"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-purple-500/20 blur-3xl pointer-events-none"></div>
-        
-        <div className="max-w-7xl mx-auto px-6 relative z-10">
+      {/* SOCIAL INTELLIGENCE REMOVIDO */}
+      <div className="hidden"><div className="max-w-7xl mx-auto px-6 relative z-10">
           {/* Header */}
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
@@ -514,7 +509,7 @@ export const LandingPage = ({ onLoginClick, onRegisterClick, lang, setLang }: { 
             </button>
           </motion.div>
         </div>
-      </section>
+      </div>
 
       <div id="institutional" className="scroll-mt-20">
           <PricingSection lang={lang} />
