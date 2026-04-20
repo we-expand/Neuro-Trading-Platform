@@ -114,11 +114,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, isAdmin, onLogout, 
     <header id="app-header" className="min-h-[4rem] h-auto py-2 border-b border-white/5 bg-black/50 backdrop-blur-md px-4 md:px-6 flex flex-wrap md:flex-nowrap items-center justify-between sticky top-0 z-40 gap-y-2">
       {/* Left: Title / Breadcrumbs */}
       <div className="flex items-center gap-4 shrink-0">
-        <h1 className="text-lg font-medium text-white tracking-wide">
-          {getViewTitle(currentView)}
-        </h1>
-        
-        {/* Execution Mode Badge - Moved here next to title */}
+        {/* Execution Mode Badge */}
         <div className={`flex items-center gap-2 px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${
             isLive 
             ? 'bg-red-500/10 border border-red-500/30 text-red-400' 
