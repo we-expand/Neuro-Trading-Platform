@@ -84,7 +84,7 @@ export const LandingPage = ({ onLoginClick, onRegisterClick, lang, setLang }: { 
 
       {/* Navbar */}
       <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-black/20 backdrop-blur-md">
-        <div className="max-w-[1400px] mx-auto px-12 h-24 flex items-center justify-between">
+        <div className="max-w-[1400px] mx-auto px-12 h-28 flex items-center justify-between">
           <div className="flex-1 flex justify-center md:justify-start">
             <NeuralLogo size="md" variant="icon-only" />
           </div>
