@@ -2521,20 +2521,30 @@ export function ChartView() {
         fetchData();
       }, 30000); // 30 segundos
 
-      // Handle resize
+      // Handle resize — ResizeObserver detecta mudanças no container (incluindo sidebar)
       const handleResize = () => {
         if (chart && chartContainerRef.current) {
           chart.resize();
-          console.log('[ChartView] 📐 Chart resized');
         }
       };
 
       window.addEventListener('resize', handleResize);
 
+      const resizeObserver = new ResizeObserver(() => {
+        handleResize();
+      });
+      if (chartContainerRef.current) {
+        resizeObserver.observe(chartContainerRef.current);
+      }
+
+      // Força resize imediato na montagem para garantir dimensões corretas
+      setTimeout(() => handleResize(), 50);
+
       return () => {
         console.log('[ChartView] 🧹 Cleaning up chart...');
         window.removeEventListener('resize', handleResize);
-        clearInterval(refreshInterval); // 🔄 Limpar intervalo de refresh
+        resizeObserver.disconnect();
+        clearInterval(refreshInterval);
         try {
           dispose(chartId);
         } catch (e) {
