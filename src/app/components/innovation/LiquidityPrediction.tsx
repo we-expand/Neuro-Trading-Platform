@@ -34,6 +34,7 @@ import { ALL_ASSETS, Asset, getAssetsByCategory, searchAssets } from '@/app/conf
 import { useSupabaseRealtimeTurbo, TURBO_CONFIGS } from '@/app/hooks/useSupabaseRealtimeTurbo'; // 🔥 TURBO MODE
 import { toast } from 'sonner';
 import { generateHourlyVoiceAnalysis, generateQuickVoiceAnalysis, HourlyAnalysisData } from '@/app/utils/hourlyVoiceAnalysis'; // 🔥 ANÁLISE DE VOZ
+import { fetchCandles } from '@/app/services/market-service';
 
 // 🔥 USAR TODOS OS 300+ ATIVOS DO BANCO DE DADOS
 const ASSETS = ALL_ASSETS;
@@ -80,6 +81,19 @@ export const LiquidityPrediction = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [aiEnabled, setAiEnabled] = useState(true); // 🔥 Toggle AI ON/OFF
   const [showHourlyPanel, setShowHourlyPanel] = useState(false); // 🔥 NOVO: Toggle painel horário
+  const [hourlyAnalysis, setHourlyAnalysis] = useState<{
+    price: number;
+    trend: 'bullish' | 'bearish' | 'sideways';
+    changePercent1h: number;
+    confidence: number;
+    resistance: number;
+    support: number;
+    volatility: number;
+    rsi: number;
+    loading: boolean;
+    marketClosed: boolean;
+    marketStatus: string;
+  } | null>(null);
   const { speak } = useSpeechAlert({ rate: 0.95, volume: 1.0 });
   
   const filteredAssets = searchQuery.trim() 
@@ -152,6 +166,97 @@ export const LiquidityPrediction = () => {
   // 🔥 CORREÇÃO: Cache do Vite
   const currentData = getChartData(selectedAsset);
   const currentCorrelations = generateCorrelations(selectedAsset); // 🔥 CORRELAÇÕES DINÂMICAS
+
+  // 🔥 ANÁLISE HORÁRIA COM DADOS REAIS
+  const fetchHourlyAnalysis = async () => {
+    const { isMarketOpen } = await import('@/app/utils/marketHours');
+    const status = isMarketOpen(selectedAsset);
+
+    setHourlyAnalysis(prev => ({ ...(prev as any), loading: true, marketClosed: !status.isOpen, marketStatus: status.status }));
+
+    try {
+      const candles = await fetchCandles(selectedAsset, '1h', 50);
+      if (!candles || candles.length < 5) {
+        setHourlyAnalysis(prev => ({ ...(prev as any), loading: false }));
+        return;
+      }
+
+      const closes = candles.map(c => c.close);
+      const highs = candles.map(c => c.high);
+      const lows = candles.map(c => c.low);
+      const price = closes[closes.length - 1];
+
+      // Tendência: comparar últimas 5 velas
+      const recentCloses = closes.slice(-5);
+      const avgRecent = recentCloses.reduce((a, b) => a + b, 0) / recentCloses.length;
+      const oldCloses = closes.slice(-10, -5);
+      const avgOld = oldCloses.reduce((a, b) => a + b, 0) / oldCloses.length;
+      const trendDiff = (avgRecent - avgOld) / avgOld;
+      const trend: 'bullish' | 'bearish' | 'sideways' =
+        trendDiff > 0.002 ? 'bullish' : trendDiff < -0.002 ? 'bearish' : 'sideways';
+
+      // Variação estimada próxima hora baseada no momentum
+      const changePercent1h = parseFloat((trendDiff * 100 * 0.6).toFixed(2));
+
+      // Suporte/Resistência: min/max das últimas 20 velas
+      const last20Highs = highs.slice(-20);
+      const last20Lows = lows.slice(-20);
+      const resistance = parseFloat(Math.max(...last20Highs).toFixed(5));
+      const support = parseFloat(Math.min(...last20Lows).toFixed(5));
+
+      // Volatilidade: desvio padrão dos retornos das últimas 10 velas
+      const returns = closes.slice(-10).map((c, i, arr) =>
+        i > 0 ? (c - arr[i - 1]) / arr[i - 1] : 0
+      ).slice(1);
+      const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
+      const volatility = parseFloat(
+        (Math.sqrt(returns.reduce((a, b) => a + (b - avgReturn) ** 2, 0) / returns.length) * 100).toFixed(2)
+      );
+
+      // RSI simples (14 períodos)
+      const gains: number[] = [];
+      const losses: number[] = [];
+      const rsiPeriod = Math.min(14, closes.length - 1);
+      for (let i = closes.length - rsiPeriod; i < closes.length; i++) {
+        const diff = closes[i] - closes[i - 1];
+        if (diff >= 0) gains.push(diff);
+        else losses.push(Math.abs(diff));
+      }
+      const avgGain = gains.length ? gains.reduce((a, b) => a + b, 0) / rsiPeriod : 0;
+      const avgLoss = losses.length ? losses.reduce((a, b) => a + b, 0) / rsiPeriod : 0.0001;
+      const rs = avgGain / avgLoss;
+      const rsi = parseFloat((100 - 100 / (1 + rs)).toFixed(1));
+
+      // Confiança: baseada na consistência do trend e RSI
+      const trendConsistency = Math.abs(trendDiff) / 0.005;
+      const rsiConfirmation = trend === 'bullish' ? (rsi > 50 ? 1 : 0.5) : (rsi < 50 ? 1 : 0.5);
+      const confidence = Math.min(95, Math.max(35, Math.round(50 + trendConsistency * 20 * rsiConfirmation)));
+
+      setHourlyAnalysis({
+        price,
+        trend,
+        changePercent1h,
+        confidence,
+        resistance,
+        support,
+        volatility,
+        rsi,
+        loading: false,
+        marketClosed: !status.isOpen,
+        marketStatus: status.status,
+      });
+    } catch (err) {
+      console.error('[HourlyAnalysis] Erro:', err);
+      setHourlyAnalysis(prev => ({ ...(prev as any), loading: false }));
+    }
+  };
+
+  // Buscar análise real sempre que o painel abre ou o ativo muda
+  useEffect(() => {
+    if (showHourlyPanel) {
+      fetchHourlyAnalysis();
+    }
+  }, [showHourlyPanel, selectedAsset]);
 
   // 🔥 OTIMIZADO: Logs a cada 5 segundos (era 3.5s)
   useEffect(() => {
@@ -589,31 +694,97 @@ export const LiquidityPrediction = () => {
                  <div className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border border-blue-500/30 rounded-2xl p-6 space-y-4">
                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
                      <Clock className="w-5 h-5 text-blue-400" />
-                     Análise Completa | Próxima Hora
+                     Análise Completa | Próxima Hora — {selectedAsset}
                    </h3>
-                   
-                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                     <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-4">
-                       <div className="text-xs text-neutral-400 mb-1">Preço Atual</div>
-                       <div className="text-2xl font-bold text-white">${(realPrices[selectedAsset] || 64000).toLocaleString()}</div>
+
+                   {/* Aviso mercado fechado */}
+                   {hourlyAnalysis?.marketClosed && (
+                     <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-2 text-amber-400 text-sm">
+                       <AlertTriangle className="w-4 h-4 shrink-0" />
+                       Mercado fechado ({hourlyAnalysis.marketStatus}). Análise baseada nos últimos dados disponíveis.
                      </div>
-                     
-                     <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-4">
-                       <div className="text-xs text-neutral-400 mb-1">Previsão (1h)</div>
-                       <div className="text-2xl font-bold text-emerald-400">+0.8%</div>
+                   )}
+
+                   {hourlyAnalysis?.loading || !hourlyAnalysis ? (
+                     <div className="flex items-center justify-center py-8 gap-3 text-neutral-400">
+                       <Activity className="w-5 h-5 animate-pulse" />
+                       <span className="text-sm">Carregando dados reais ao vivo...</span>
                      </div>
-                     
-                     <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-4">
-                       <div className="text-xs text-neutral-400 mb-1">Confiança</div>
-                       <div className="text-2xl font-bold text-blue-400">68%</div>
-                     </div>
-                   </div>
-                   
-                   <div className="space-y-2 text-sm text-neutral-300">
-                     <p><strong className="text-emerald-400">TENDÊNCIA:</strong> Alta moderada prevista para próxima hora</p>
-                     <p><strong className="text-blue-400">NÍVEIS:</strong> Resistência em ${((realPrices[selectedAsset] || 64000) * 1.002).toFixed(2)} | Suporte em ${((realPrices[selectedAsset] || 64000) * 0.998).toFixed(2)}</p>
-                     <p><strong className="text-purple-400">RECOMENDAÇÃO:</strong> Considere entrada em COMPRA acima de ${((realPrices[selectedAsset] || 64000) * 1.001).toFixed(2)}</p>
-                   </div>
+                   ) : (
+                     <>
+                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                         <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-3">
+                           <div className="text-xs text-neutral-400 mb-1">Preço Atual</div>
+                           <div className="text-xl font-bold text-white">
+                             {hourlyAnalysis.price > 100
+                               ? `$${hourlyAnalysis.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                               : `$${hourlyAnalysis.price.toFixed(5)}`}
+                           </div>
+                         </div>
+
+                         <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-3">
+                           <div className="text-xs text-neutral-400 mb-1">Momentum 1h</div>
+                           <div className={`text-xl font-bold ${hourlyAnalysis.changePercent1h >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                             {hourlyAnalysis.changePercent1h >= 0 ? '+' : ''}{hourlyAnalysis.changePercent1h}%
+                           </div>
+                         </div>
+
+                         <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-3">
+                           <div className="text-xs text-neutral-400 mb-1">Confiança</div>
+                           <div className="text-xl font-bold text-blue-400">{hourlyAnalysis.confidence}%</div>
+                         </div>
+
+                         <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-3">
+                           <div className="text-xs text-neutral-400 mb-1">RSI (14)</div>
+                           <div className={`text-xl font-bold ${hourlyAnalysis.rsi > 70 ? 'text-red-400' : hourlyAnalysis.rsi < 30 ? 'text-emerald-400' : 'text-neutral-200'}`}>
+                             {hourlyAnalysis.rsi}
+                           </div>
+                         </div>
+                       </div>
+
+                       <div className="space-y-2 text-sm text-neutral-300">
+                         <p>
+                           <strong className={hourlyAnalysis.trend === 'bullish' ? 'text-emerald-400' : hourlyAnalysis.trend === 'bearish' ? 'text-red-400' : 'text-yellow-400'}>
+                             TENDÊNCIA:
+                           </strong>{' '}
+                           {hourlyAnalysis.trend === 'bullish' ? 'Alta' : hourlyAnalysis.trend === 'bearish' ? 'Baixa' : 'Lateral'} detectada nas últimas velas de 1h
+                         </p>
+                         <p>
+                           <strong className="text-blue-400">NÍVEIS (20 velas):</strong>{' '}
+                           Resistência em ${hourlyAnalysis.resistance > 100
+                             ? hourlyAnalysis.resistance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                             : hourlyAnalysis.resistance.toFixed(5)
+                           } | Suporte em ${hourlyAnalysis.support > 100
+                             ? hourlyAnalysis.support.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                             : hourlyAnalysis.support.toFixed(5)
+                           }
+                         </p>
+                         <p>
+                           <strong className="text-purple-400">VOLATILIDADE:</strong>{' '}
+                           {hourlyAnalysis.volatility}% (desvio padrão retornos)
+                         </p>
+                         <p>
+                           <strong className="text-amber-400">RECOMENDAÇÃO:</strong>{' '}
+                           {hourlyAnalysis.trend === 'bullish'
+                             ? `RSI ${hourlyAnalysis.rsi} — momentum de alta. Acompanhe rompimento da resistência em $${hourlyAnalysis.resistance > 100 ? hourlyAnalysis.resistance.toFixed(2) : hourlyAnalysis.resistance.toFixed(5)}.`
+                             : hourlyAnalysis.trend === 'bearish'
+                             ? `RSI ${hourlyAnalysis.rsi} — pressão vendedora. Observe suporte em $${hourlyAnalysis.support > 100 ? hourlyAnalysis.support.toFixed(2) : hourlyAnalysis.support.toFixed(5)}.`
+                             : `Mercado lateral. Aguarde rompimento de ${hourlyAnalysis.support > 100 ? hourlyAnalysis.support.toFixed(2) : hourlyAnalysis.support.toFixed(5)}–${hourlyAnalysis.resistance > 100 ? hourlyAnalysis.resistance.toFixed(2) : hourlyAnalysis.resistance.toFixed(5)}.`
+                           }
+                         </p>
+                       </div>
+
+                       <div className="flex items-center justify-between pt-2 border-t border-neutral-800">
+                         <span className="text-xs text-neutral-500">Fonte: candles reais 1h via API</span>
+                         <button
+                           onClick={fetchHourlyAnalysis}
+                           className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
+                         >
+                           <Activity className="w-3 h-3" /> Atualizar
+                         </button>
+                       </div>
+                     </>
+                   )}
                  </div>
                </motion.div>
              )}
