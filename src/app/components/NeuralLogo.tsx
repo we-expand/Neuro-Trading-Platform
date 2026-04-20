@@ -27,7 +27,7 @@ export const NeuralLogo: React.FC<NeuralLogoProps> = ({
         xmlnsXlink="http://www.w3.org/1999/xlink"
         viewBox="0 10 320 220"
         width="100%"
-        height="auto"
+        height="100%"
         className="relative z-10"
       >
         <defs>
