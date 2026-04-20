@@ -816,7 +816,7 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
           }
           
           // ✅ FILTRO DE QUALIDADE: Apenas trades com confiança razoável
-          const MIN_CONFIDENCE = 0.60; // 🚀 REDUZIDO DE 60% PARA 45% - Muito mais oportunidades!
+          const MIN_CONFIDENCE = 45; // 🚀 REDUZIDO DE 60% PARA 45% - Muito mais oportunidades!
           
           if (confidenceScore < MIN_CONFIDENCE) {
             console.log(`[QUALIDADE] ❌ Setup rejeitado: ${selectedSymbol} - Score ${confidenceScore}% (mínimo ${MIN_CONFIDENCE}%)`);
@@ -994,8 +994,8 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
           // Arredondar para 2 casas decimais e aplicar mínimo/máximo
           calculatedLots = Math.round(calculatedLots * 100) / 100;
           const minLots = contractSpec.minLotSize;
-          const maxLots = aiConfig.maxContracts;
-          const contractsToUse = Math.min(Number(aiConfig.maxContracts || 1.0), 1.0);
+          const maxLots = aiConfig.maxContracts; // maxContracts = max lotes permitido pelo usuário
+          const contractsToUse = Math.min(aiConfig.maxContracts || 1.0, 1.0);
 
           const finalTradeCapital = contractsToUse * currentPrice * contractSpec.contractSize / 100; // Margem estimada
 
@@ -1024,7 +1024,7 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
             symbol: selectedSymbol,
             side,
             amount: finalTradeCapital,
-            contracts: Math.min(contractsToUse, 1.0),
+            contracts: contractsToUse,
             commission: entryCommission, // comissão de saída = mesmo valor (por simplificação)
             price: currentPrice,
             currentPrice: currentPrice,
@@ -1073,7 +1073,7 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
     const pnlInterval = setInterval(() => {
         // Em modo DEMO: se AI estiver desligada, congelar simulação de preços e TP/SL
         if (!isActiveRef.current && configRef.current.executionMode !== 'LIVE') return;
-        if (!isActiveRef.current || activeOrders.length === 0) return;
+        if (activeOrders.length === 0) return;
 
         // Reset refs
         pnlLoopRef.current = { realizedPnL: 0, totalUnrealizedPnL: 0, totalExposure: 0 };
