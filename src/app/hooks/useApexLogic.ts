@@ -56,6 +56,7 @@ export interface TradeVisual {
   side: 'LONG' | 'SHORT';
   amount: number;
   contracts: number; // number of contracts/lots in this position
+  commission: number; // custo de comissão de entrada (USD)
   price: number;
   currentPrice?: number;
   currentProfit?: number; // Added for Real PnL from MT5
@@ -111,6 +112,7 @@ export interface AIConfig {
   timeframe: string; // Timeframe operacional (1m, 5m, 15m, 1H, 4H)
   newsFilter: boolean; // Filtro de notícias econômicas
   dailyLossLimit: number; // Limite de perda diária (%)
+  commissionPerContract: number; // Comissão por contrato por lado (USD) — ex: $2.50
   metaApiToken?: string; // 🔑 Token do MetaApi para integração MT5
 }
 
@@ -243,6 +245,7 @@ const INITIAL_STATE: ApexLogicState = {
     timeframe: '15m', // Timeframe operacional (1m, 5m, 15m, 1H, 4H)
     newsFilter: true, // Filtro de notícias econômicas
     dailyLossLimit: 5, // Limite de perda diária (%)
+    commissionPerContract: 2.50, // $2.50 por contrato por lado (round-trip = $5.00)
     metaApiToken: '', // 🔑 Token do MetaApi para integração MT5
   },
   mt5Credentials: null,
@@ -980,11 +983,20 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
           const finalTradeCapital = Math.max(tradeCapital, minTradeCapital);
 
           // 🔒 RESPEITAR maxContracts: nunca abrir mais contratos que o configurado
-          const contractsToUse = Math.min(aiConfig.maxContracts, Math.max(1, aiConfig.maxContracts));
+          const contractsToUse = Math.max(1, Math.floor(aiConfig.maxContracts));
           if (contractsToUse <= 0) {
             addLog(`⛔ TRADE BLOQUEADO: maxContracts = ${aiConfig.maxContracts} (deve ser >= 1)`);
             return;
           }
+
+          // 💸 COMISSÃO DE ENTRADA: deduzida imediatamente do saldo
+          const entryCommission = (aiConfig.commissionPerContract ?? 2.5) * contractsToUse;
+          setPortfolio(prev => ({
+            ...prev,
+            balance: prev.balance - entryCommission,
+            equity: prev.equity - entryCommission,
+          }));
+          addLog(`💸 Comissão entrada: -$${entryCommission.toFixed(2)} (${contractsToUse} contratos × $${(aiConfig.commissionPerContract ?? 2.5).toFixed(2)})`);
           
           console.log(`[POSITION SIZING] 💰 ${selectedSymbol}:`, {
             currentBalance: `$${currentBalance.toFixed(2)}`,
@@ -1001,7 +1013,8 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
             symbol: selectedSymbol,
             side,
             amount: finalTradeCapital,
-            contracts: contractsToUse, // 🔒 Sempre respeita maxContracts do usuário
+            contracts: contractsToUse,
+            commission: entryCommission, // comissão de saída = mesmo valor (por simplificação)
             price: currentPrice,
             currentPrice: currentPrice,
             tp,
@@ -1087,22 +1100,24 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
 
                 // Calculate P&L
                 let pnl = 0;
-                
+
                 // Em LIVE com MT5, o MT5 provê o profit real da posição.
                 if (configRef.current.executionMode === 'LIVE' && isConnectedToMT5 && order.currentProfit !== undefined) {
                    pnl = order.currentProfit;
                 } else {
-                   pnl = calculatePnLWithLeverage(
+                   // ✅ CORRETO: usar contracts (lotes) para P&L realista
+                   pnl = calculateRealisticPnL(
                        order.symbol,
                        order.price,
                        nextPrice,
                        order.side,
-                       order.amount,
-                       order.leverage
+                       order.contracts ?? 1
                    );
                 }
 
-                totalExposure += order.amount * nextPrice * order.leverage;
+                // Exposição notional = contratos × preço × tamanho do contrato
+                const spec = getContractSpec(order.symbol);
+                totalExposure += (order.contracts ?? 1) * nextPrice * spec.contractSize;
 
                 // Check TP/SL apenas se DEMO. No MT5 LIVE, quem fecha é a corretora
                 // e nós sincronizamos as posições abertas/fechadas.
@@ -1110,16 +1125,19 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
                 const hitTP = isDemo && (order.side === 'LONG' ? nextPrice >= order.tp : nextPrice <= order.tp);
                 const hitSL = isDemo && (order.side === 'LONG' ? nextPrice <= order.sl : nextPrice >= order.sl);
 
+                // Comissão de saída (TP/SL)
+                const exitComm = order.commission ?? 0;
+
                 if (hitTP) {
-                    realizedPnL += pnl;
-                    // NÃO soma ao unrealized — posição fechada vai ao balance
-                    logsToAdd.push(`🎯 ALVO ATINGIDO: ${order.symbol} +$${pnl.toFixed(2)}`);
-                    setOrderHistory(prev => [...prev, { ...order, currentPrice: nextPrice, currentProfit: pnl, closedAt: Date.now() }]);
+                    const netPnl = pnl - exitComm;
+                    realizedPnL += netPnl;
+                    logsToAdd.push(`🎯 ALVO: ${order.symbol} P&L bruto +$${pnl.toFixed(2)} | comissão -$${exitComm.toFixed(2)} | líquido ${netPnl >= 0 ? '+' : ''}$${netPnl.toFixed(2)}`);
+                    setOrderHistory(prev => [...prev, { ...order, currentPrice: nextPrice, currentProfit: netPnl, closedAt: Date.now() }]);
                 } else if (hitSL) {
-                    realizedPnL += pnl;
-                    // NÃO soma ao unrealized — posição fechada vai ao balance
-                    logsToAdd.push(`🛡️ STOP ATINGIDO: ${order.symbol} ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}`);
-                    setOrderHistory(prev => [...prev, { ...order, currentPrice: nextPrice, currentProfit: pnl, closedAt: Date.now() }]);
+                    const netPnl = pnl - exitComm;
+                    realizedPnL += netPnl;
+                    logsToAdd.push(`🛡️ STOP: ${order.symbol} P&L bruto ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} | comissão -$${exitComm.toFixed(2)} | líquido ${netPnl >= 0 ? '+' : ''}$${netPnl.toFixed(2)}`);
+                    setOrderHistory(prev => [...prev, { ...order, currentPrice: nextPrice, currentProfit: netPnl, closedAt: Date.now() }]);
                 } else {
                     // Posição ainda aberta: soma ao unrealized P&L
                     totalUnrealizedPnL += pnl;
@@ -1202,17 +1220,18 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
 
       closingOrders.forEach(order => {
         const currentPrice = order.currentPrice || order.price;
-        const tradePnL = calculatePnLWithLeverage(
+        const tradePnL = calculateRealisticPnL(
           order.symbol,
           order.price,
           currentPrice,
           order.side,
-          order.amount,
-          order.leverage
+          order.contracts ?? 1
         );
-        totalRealizedPnL += tradePnL;
-        
-        console.log(`[FORCE CLOSE] 🚨 Fechando ${order.symbol} ${order.side}: P&L = $${tradePnL.toFixed(2)}`);
+        // Descontar comissão de saída
+        const exitCommission = (order.commission ?? 0);
+        totalRealizedPnL += tradePnL - exitCommission;
+
+        console.log(`[FORCE CLOSE] 🚨 Fechando ${order.symbol} ${order.side}: P&L = $${tradePnL.toFixed(2)} | Comissão saída: -$${exitCommission.toFixed(2)}`);
       });
 
       setPortfolio(prev => ({
@@ -1222,16 +1241,15 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
         openPositionsValue: 0,
       }));
 
-      setOrderHistory(prev => [...prev, ...closingOrders.map(o => ({ 
-        ...o, 
+      setOrderHistory(prev => [...prev, ...closingOrders.map(o => ({
+        ...o,
         currentPrice: o.currentPrice || o.price,
-        currentProfit: calculatePnLWithLeverage(
+        currentProfit: calculateRealisticPnL(
           o.symbol,
           o.price,
           o.currentPrice || o.price,
           o.side,
-          o.amount,
-          o.leverage
+          o.contracts ?? 1
         ),
         closedAt: Date.now() 
       }))]);
@@ -1292,15 +1310,15 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
 
     closingOrders.forEach(order => {
       const currentPrice = order.currentPrice || order.price;
-      const tradePnL = calculatePnLWithLeverage(
+      const tradePnL = calculateRealisticPnL(
         order.symbol,
         order.price,
         currentPrice,
         order.side,
-        order.amount,
-        order.leverage
+        order.contracts ?? 1
       );
-      totalRealizedPnL += tradePnL;
+      const exitCommission = order.commission ?? 0;
+      totalRealizedPnL += tradePnL - exitCommission;
     });
 
     setPortfolio(prev => ({
@@ -1493,7 +1511,8 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
         symbol: pos.symbol,
         side,
         amount: pos.volume * 100, // Volume em lotes convertido para capital estimado
-        contracts: pos.volume, // Lotes MT5 = contratos
+        contracts: pos.volume,
+        commission: 0, // MT5: comissão já deduzida pelo broker
         price: pos.openPrice,
         currentPrice: pos.currentPrice,
         currentProfit: profit,

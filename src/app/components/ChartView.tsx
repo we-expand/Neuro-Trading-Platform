@@ -194,7 +194,7 @@ try {
   console.warn('[ChartView] ⚠️ Fibonacci Extension overlay já registrado ou erro:', e);
 }
 
-// 🤖 CUSTOM OVERLAY: AI Trade Entry marker (horizontal line + reasoning label)
+// 🤖 CUSTOM OVERLAY: AI Trade Entry marker (horizontal line + reasoning label + comissão)
 const AITradeEntryOverlay: OverlayTemplate = {
   name: 'aiTradeEntry',
   totalStep: 2,
@@ -207,7 +207,10 @@ const AITradeEntryOverlay: OverlayTemplate = {
     const isLong = data.side === 'LONG';
     const color = isLong ? '#10b981' : '#ef4444';
     const lineY = coordinates[0].y;
-    const label = `${isLong ? '▲' : '▼'} ${data.contracts ?? 1}× | ${data.reasoning ?? ''}`;
+    const contracts = data.contracts ?? 1;
+    const commission = data.commission ?? 0;
+    const commissionStr = commission > 0 ? ` | Comissão: -$${commission.toFixed(2)}` : '';
+    const label = `${isLong ? '▲ COMPRA' : '▼ VENDA'} ${contracts} lote${contracts !== 1 ? 's' : ''}${commissionStr} | ${data.reasoning ?? ''}`;
     return [
       {
         type: 'line',
@@ -1039,7 +1042,7 @@ export function ChartView() {
           groupId: 'ai-orders',
           id: `ai-entry-${order.id}`,
           points: [{ timestamp: order.timestamp, value: order.price }],
-          extendData: { side: order.side, contracts, reasoning: order.reasoning, confidence: order.ai_confidence },
+          extendData: { side: order.side, contracts, reasoning: order.reasoning, confidence: order.ai_confidence, commission: order.commission ?? 0 },
           lock: true,
         });
       } catch {}

@@ -728,61 +728,31 @@ export function AITrader({ compact = false, onNavigate }: { compact?: boolean; o
                 {/* 💎 CAPITAL LÍQUIDO EM ABERTO - HUD */}
                 <div className="p-4 rounded-xl border border-cyan-500/30 bg-gradient-to-r from-cyan-900/20 to-blue-900/20 backdrop-blur-sm shadow-lg shadow-cyan-500/10">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    {/* Total P&L não realizado */}
+                    {/* Total P&L não realizado — usa currentProfit que vem do loop corretamente */}
+                    {(() => {
+                      const totalPnL = activeOrders.reduce((sum, o) => sum + (o.currentProfit ?? 0), 0);
+                      const totalCommission = activeOrders.reduce((sum, o) => sum + (o.commission ?? 0), 0);
+                      const isPos = totalPnL >= 0;
+                      return (
                     <div className="flex flex-col">
                       <span className="text-xs text-cyan-400/70 uppercase tracking-wider font-bold mb-2">P&L Não Realizado</span>
-                      <span className={`text-2xl font-bold font-mono ${
-                        activeOrders.reduce((total, order) => {
-                          const currentPrice = order.currentPrice || order.price;
-                          const priceDiffPct = order.price > 0 ? (currentPrice - order.price) / order.price : 0;
-                          const rawPnL = (order.side === 'LONG' ? priceDiffPct : -priceDiffPct) * order.leverage;
-                          const pnlValue = order.currentProfit !== undefined ? order.currentProfit : (order.amount || 0) * rawPnL;
-                          return total + pnlValue;
-                        }, 0) >= 0 ? 'text-emerald-400' : 'text-red-400'
-                      }`}>
-                        {activeOrders.reduce((total, order) => {
-                          const currentPrice = order.currentPrice || order.price;
-                          const priceDiffPct = order.price > 0 ? (currentPrice - order.price) / order.price : 0;
-                          const rawPnL = (order.side === 'LONG' ? priceDiffPct : -priceDiffPct) * order.leverage;
-                          const pnlValue = order.currentProfit !== undefined ? order.currentProfit : (order.amount || 0) * rawPnL;
-                          return total + pnlValue;
-                        }, 0) >= 0 ? '+' : ''}{activeOrders.reduce((total, order) => {
-                          const currentPrice = order.currentPrice || order.price;
-                          const priceDiffPct = order.price > 0 ? (currentPrice - order.price) / order.price : 0;
-                          const rawPnL = (order.side === 'LONG' ? priceDiffPct : -priceDiffPct) * order.leverage;
-                          const pnlValue = order.currentProfit !== undefined ? order.currentProfit : (order.amount || 0) * rawPnL;
-                          return total + pnlValue;
-                        }, 0).toFixed(2)}
+                      <span className={`text-2xl font-bold font-mono ${isPos ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {isPos ? '+' : ''}${totalPnL.toFixed(2)}
                       </span>
-                      <span className={`text-xs font-mono mt-1 ${
-                        activeOrders.reduce((total, order) => {
-                          const currentPrice = order.currentPrice || order.price;
-                          const priceDiffPct = order.price > 0 ? (currentPrice - order.price) / order.price : 0;
-                          const rawPnL = (order.side === 'LONG' ? priceDiffPct : -priceDiffPct) * order.leverage;
-                          return total + rawPnL;
-                        }, 0) >= 0 ? 'text-emerald-400/60' : 'text-red-400/60'
-                      }`}>
-                        {activeOrders.reduce((total, order) => {
-                          const currentPrice = order.currentPrice || order.price;
-                          const priceDiffPct = order.price > 0 ? (currentPrice - order.price) / order.price : 0;
-                          const rawPnL = (order.side === 'LONG' ? priceDiffPct : -priceDiffPct) * order.leverage;
-                          return total + rawPnL;
-                        }, 0) >= 0 ? '+' : ''}{(activeOrders.reduce((total, order) => {
-                          const currentPrice = order.currentPrice || order.price;
-                          const priceDiffPct = order.price > 0 ? (currentPrice - order.price) / order.price : 0;
-                          const rawPnL = (order.side === 'LONG' ? priceDiffPct : -priceDiffPct) * order.leverage;
-                          return total + rawPnL;
-                        }, 0) * 100).toFixed(2)}%
+                      <span className="text-[10px] text-amber-400/70 font-mono mt-1">
+                        Comissões: -${totalCommission.toFixed(2)}
                       </span>
                     </div>
+                      );
+                    })()}
 
-                    {/* Capital em Aberto (Margem) */}
+                    {/* Posições abertas: contratos totais */}
                     <div className="flex flex-col">
-                      <span className="text-xs text-cyan-400/70 uppercase tracking-wider font-bold mb-2">Capital em Aberto</span>
+                      <span className="text-xs text-cyan-400/70 uppercase tracking-wider font-bold mb-2">Contratos em Aberto</span>
                       <span className="text-2xl font-bold text-white font-mono">
-                        ${activeOrders.reduce((total, order) => total + (order.amount || 0), 0).toFixed(2)}
+                        {activeOrders.reduce((total, order) => total + (order.contracts ?? 1), 0).toFixed(2)}
                       </span>
-                      <span className="text-xs text-slate-400/60 font-mono mt-1">Margem investida</span>
+                      <span className="text-xs text-slate-400/60 font-mono mt-1">lotes total</span>
                     </div>
 
                     {/* Operações Abertas */}
@@ -805,27 +775,13 @@ export function AITrader({ compact = false, onNavigate }: { compact?: boolean; o
                       </span>
                     </div>
 
-                    {/* Equity Projetado */}
+                    {/* Equity atual (portfolio.equity já é balance + unrealized P&L) */}
                     <div className="flex flex-col">
-                      <span className="text-xs text-cyan-400/70 uppercase tracking-wider font-bold mb-2">Equity Projetado</span>
-                      <span className={`text-2xl font-bold font-mono ${
-                        (portfolio?.equity || 0) + activeOrders.reduce((total, order) => {
-                          const currentPrice = order.currentPrice || order.price;
-                          const priceDiffPct = order.price > 0 ? (currentPrice - order.price) / order.price : 0;
-                          const rawPnL = (order.side === 'LONG' ? priceDiffPct : -priceDiffPct) * order.leverage;
-                          const pnlValue = order.currentProfit !== undefined ? order.currentProfit : (order.amount || 0) * rawPnL;
-                          return total + pnlValue;
-                        }, 0) >= (portfolio?.equity || 0) ? 'text-emerald-400' : 'text-red-400'
-                      }`}>
-                        ${((portfolio?.equity || 0) + activeOrders.reduce((total, order) => {
-                          const currentPrice = order.currentPrice || order.price;
-                          const priceDiffPct = order.price > 0 ? (currentPrice - order.price) / order.price : 0;
-                          const rawPnL = (order.side === 'LONG' ? priceDiffPct : -priceDiffPct) * order.leverage;
-                          const pnlValue = order.currentProfit !== undefined ? order.currentProfit : (order.amount || 0) * rawPnL;
-                          return total + pnlValue;
-                        }, 0)).toFixed(2)}
+                      <span className="text-xs text-cyan-400/70 uppercase tracking-wider font-bold mb-2">Equity Atual</span>
+                      <span className={`text-2xl font-bold font-mono ${(portfolio?.equity ?? 0) >= (portfolio?.balance ?? 0) ? 'text-emerald-400' : 'text-red-400'}`}>
+                        ${(portfolio?.equity ?? 0).toFixed(2)}
                       </span>
-                      <span className="text-xs text-slate-400/60 font-mono mt-1">Se fechar agora</span>
+                      <span className="text-xs text-slate-400/60 font-mono mt-1">Balance + P&L aberto</span>
                     </div>
                   </div>
                 </div>
@@ -835,27 +791,13 @@ export function AITrader({ compact = false, onNavigate }: { compact?: boolean; o
                     {activeOrders.map((order, idx) => {
                       const entryNumber = (tradeHistory?.length || 0) + idx + 1;
                         const currentPrice = order.currentPrice || order.price;
+                        // P&L líquido vem diretamente do loop (currentProfit já usa contracts + comissão)
+                        const pnlUSD = order.currentProfit ?? 0;
+                        const isPositive = pnlUSD >= 0;
+                        // % sobre valor notional (para referência)
                         const priceDiffPct = order.price > 0 ? (currentPrice - order.price) / order.price : 0;
-                        // Calculate Real PnL based on leverage
-                        const rawPnLPercent = (order.side === 'LONG' ? priceDiffPct : -priceDiffPct) * order.leverage * 100;
-                        const pnlPercent = (rawPnLPercent || 0).toFixed(2);
-                        const isPositive = order.currentProfit !== undefined ? order.currentProfit >= 0 : (rawPnLPercent || 0) >= 0;
-                        // P&L em USD = order.currentProfit (se MT5) ou cálculo de margem
-                        const pnlValue = order.currentProfit !== undefined 
-                            ? Math.abs(order.currentProfit).toFixed(2) 
-                            : Math.abs((order.amount || 0) * ((rawPnLPercent || 0) / 100)).toFixed(2);
-                        
-                        // 🔍 DEBUG: Log para verificar valores
-                        console.log(`[P&L DEBUG] ${order.symbol}:`, {
-                            entryPrice: order.price,
-                            currentPrice,
-                            side: order.side,
-                            marginInvested: order.amount,
-                            leverage: order.leverage,
-                            priceDiff: ((currentPrice - order.price) / order.price * 100).toFixed(2) + '%',
-                            pnlPercent: pnlPercent + '%',
-                            pnlUSD: pnlValue
-                        });
+                        const directedPct = (order.side === 'LONG' ? priceDiffPct : -priceDiffPct) * 100;
+                        const pnlPercent = directedPct.toFixed(2);
 
                         return (
                         <div key={order.id} className="p-4 bg-neutral-900/50 border border-white/10 rounded-xl flex flex-col gap-3 group hover:border-white/20 transition-all shadow-lg shadow-black/20 hover:shadow-purple-900/10 hover:-translate-y-1 relative overflow-hidden">
@@ -878,18 +820,18 @@ export function AITrader({ compact = false, onNavigate }: { compact?: boolean; o
                                       {order.contracts ?? 1} {(order.contracts ?? 1) === 1 ? 'contrato' : 'contratos'}
                                   </span>
                                 </div>
-                                <div className="flex gap-3 text-[10px] text-slate-500 font-mono">
+                                <div className="flex gap-3 text-[10px] text-slate-500 font-mono flex-wrap">
                                     <span>Entrada: ${(order.price || 0).toFixed(2)}</span>
-                                    <span>Lev: {(order.leverage || 0).toFixed(1)}x</span>
-                                    <span>Capital: ${(order.amount || 0).toFixed(0)}</span>
+                                    <span>Atual: ${currentPrice.toFixed(2)}</span>
+                                    {order.commission ? <span className="text-amber-500">Comissão: -${order.commission.toFixed(2)}</span> : null}
                                 </div>
                               </div>
                               <div className="text-right z-10 shrink-0">
                                   <div className={`${isPositive ? 'text-emerald-400' : 'text-red-400'} font-bold font-mono text-lg leading-none mb-1`}>
                                       {isPositive ? '+' : ''}{pnlPercent}%
                                   </div>
-                                  <div className={`text-[10px] uppercase tracking-wider font-mono ${isPositive ? 'text-emerald-500/60' : 'text-red-500/60'}`}>
-                                      {isPositive ? '+' : ''}${pnlValue}
+                                  <div className={`text-sm font-bold font-mono ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
+                                      {isPositive ? '+' : ''}${Math.abs(pnlUSD).toFixed(2)}
                                   </div>
                               </div>
                             </div>
