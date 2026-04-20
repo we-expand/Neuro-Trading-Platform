@@ -1,5 +1,5 @@
-import React from 'react';
-import { Bell, LogOut, Search, ShieldCheck, AlertTriangle, User, ArrowLeftRight } from 'lucide-react';
+import React, { useRef } from 'react';
+import { Bell, LogOut, ShieldCheck, AlertTriangle, ArrowLeftRight, ImagePlus } from 'lucide-react';
 import { useTradingContext } from '../../contexts/TradingContext';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import { BrokerConnectionStatus } from '../BrokerConnectionStatus';
@@ -16,6 +16,31 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ currentView, isAdmin, onLogout, user, onOpenBrokerConfig }) => {
   const { config, setConfig } = useTradingContext();
   const { fullName, profile, avatarUrl } = useUserProfile();
+  const faviconInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFaviconUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+      if (link) {
+        link.href = dataUrl;
+      } else {
+        const newLink = document.createElement('link');
+        newLink.rel = 'icon';
+        newLink.href = dataUrl;
+        document.head.appendChild(newLink);
+      }
+      toast.success(`Favicon aplicado: ${file.name}`, {
+        description: 'Envie a imagem no chat para eu salvar permanentemente.'
+      });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
   const isLive = config.executionMode === 'LIVE';
   const [confirmSwitch, setConfirmSwitch] = React.useState(false);
 
@@ -119,6 +144,27 @@ export const Header: React.FC<HeaderProps> = ({ currentView, isAdmin, onLogout, 
       <div className="flex items-center gap-2 md:gap-4 ml-auto shrink-0">
         {/* 🟢 BROKER CONNECTION STATUS */}
         <BrokerConnectionStatus />
+
+        {/* 🖼️ FAVICON UPLOAD — apenas admin */}
+        {isAdmin && (
+          <>
+            <input
+              ref={faviconInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFaviconUpload}
+            />
+            <button
+              onClick={() => faviconInputRef.current?.click()}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:border-white/20 transition-all text-xs"
+              title="Enviar imagem para favicon"
+            >
+              <ImagePlus className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">Favicon</span>
+            </button>
+          </>
+        )}
 
         {/* Notifications */}
         <button className="relative p-2 text-slate-400 hover:text-white transition-colors rounded-full hover:bg-white/5">
