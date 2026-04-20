@@ -1976,7 +1976,7 @@ export function ChartView() {
   // Initialize chart
   useEffect(() => {
     console.log('[ChartView] 🚀 Starting initialization...');
-    
+
     if (!chartContainerRef.current) {
       console.error('[ChartView] ❌ Container ref is null');
       return;
@@ -2033,6 +2033,13 @@ export function ChartView() {
       }
 
       console.log('[ChartView] 📊 Calling init() with DOM element:', chartEl);
+
+      // Garantir dimensões mínimas antes do init (evita retorno null)
+      if (!chartEl.offsetWidth || !chartEl.offsetHeight) {
+        console.warn('[ChartView] ⚠️ Element has zero dimensions — forçando mínimo...');
+        chartEl.style.minHeight = '400px';
+        chartEl.style.minWidth = '200px';
+      }
 
       // ✅ Usar elemento DOM diretamente (mais confiável que string ID)
       const chart = init(chartEl);
@@ -2185,8 +2192,25 @@ export function ChartView() {
           },
         },
         xAxis: {
+          show: true,
+          size: 22,
           axisLine: {
             show: false,
+          },
+          tickLine: {
+            show: true,
+            size: 1,
+            length: 3,
+            color: '#4a4a4a',
+          },
+          tickText: {
+            show: true,
+            size: 10,
+            family: 'Arial, sans-serif',
+            weight: 'normal',
+            color: '#9ca3af',
+            marginStart: 4,
+            marginEnd: 4,
           },
         },
         yAxis: {

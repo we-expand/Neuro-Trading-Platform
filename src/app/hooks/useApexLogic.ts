@@ -333,6 +333,7 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
 
   // === MUTEX LOCK (Prevent Race Conditions) ===
   const mutexRef = useRef(false);
+  const isActiveRef = useRef(false); // Espelha isActive para uso em setInterval
 
   // 🔥 PERFORMANCE FIX: Log de inicialização (EXECUTA APENAS UMA VEZ)
   // Movido para DEPOIS de todos os refs para respeitar Rules of Hooks
@@ -401,6 +402,10 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
   useEffect(() => {
     maxCandlesRef.current = maxCandlesBeforeForceEntry;
   }, [maxCandlesBeforeForceEntry]);
+
+  useEffect(() => {
+    isActiveRef.current = isActive;
+  }, [isActive]);
 
   // === PERSISTENCE ===
   useEffect(() => {
@@ -1060,6 +1065,8 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
   // === UNREALIZED PNL LOOP (Price Updates & P&L Calculation) ===
   useEffect(() => {
     const pnlInterval = setInterval(() => {
+        // Em modo DEMO: se AI estiver desligada, congelar simulação de preços e TP/SL
+        if (!isActiveRef.current && configRef.current.executionMode !== 'LIVE') return;
         if (activeOrders.length === 0) return;
 
         // Reset refs
