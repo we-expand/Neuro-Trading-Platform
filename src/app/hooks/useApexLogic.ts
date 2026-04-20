@@ -55,6 +55,7 @@ export interface TradeVisual {
   symbol: string;
   side: 'LONG' | 'SHORT';
   amount: number;
+  contracts: number; // number of contracts/lots in this position
   price: number;
   currentPrice?: number;
   currentProfit?: number; // Added for Real PnL from MT5
@@ -64,7 +65,7 @@ export interface TradeVisual {
   leverage: number;
   ai_confidence: number;
   timestamp: number;
-  reasoning: string; 
+  reasoning: string;
   hasTakenPartial?: boolean;
   indicators: {
     rsi: number;
@@ -970,13 +971,20 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
           const currentBalance = portfolioRef.current?.balance || 100;
           const allocatedCapital = Math.min(aiConfig.allocatedCapital, currentBalance);
           const riskPercentage = aiConfig.riskPerTrade / 100; // Ex: 2% = 0.02
-          
+
           // Capital para este trade (% do capital alocado)
           const tradeCapital = allocatedCapital * riskPercentage;
-          
+
           // Garantir valor mínimo para evitar P&L zerado
           const minTradeCapital = 10; // Mínimo $10 por trade
           const finalTradeCapital = Math.max(tradeCapital, minTradeCapital);
+
+          // 🔒 RESPEITAR maxContracts: nunca abrir mais contratos que o configurado
+          const contractsToUse = Math.min(aiConfig.maxContracts, Math.max(1, aiConfig.maxContracts));
+          if (contractsToUse <= 0) {
+            addLog(`⛔ TRADE BLOQUEADO: maxContracts = ${aiConfig.maxContracts} (deve ser >= 1)`);
+            return;
+          }
           
           console.log(`[POSITION SIZING] 💰 ${selectedSymbol}:`, {
             currentBalance: `$${currentBalance.toFixed(2)}`,
@@ -992,7 +1000,8 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
             id: `trade-${Date.now()}-${Math.random()}`,
             symbol: selectedSymbol,
             side,
-            amount: finalTradeCapital, // ✅ CORREÇÃO: Usar capital calculado, não maxContracts!
+            amount: finalTradeCapital,
+            contracts: contractsToUse, // 🔒 Sempre respeita maxContracts do usuário
             price: currentPrice,
             currentPrice: currentPrice,
             tp,
@@ -1484,6 +1493,7 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
         symbol: pos.symbol,
         side,
         amount: pos.volume * 100, // Volume em lotes convertido para capital estimado
+        contracts: pos.volume, // Lotes MT5 = contratos
         price: pos.openPrice,
         currentPrice: pos.currentPrice,
         currentProfit: profit,

@@ -858,39 +858,50 @@ export function AITrader({ compact = false, onNavigate }: { compact?: boolean; o
                         });
 
                         return (
-                        <div key={order.id} className="p-4 bg-neutral-900/50 border border-white/10 rounded-xl flex items-center justify-between group hover:border-white/20 transition-all shadow-lg shadow-black/20 hover:shadow-purple-900/10 hover:-translate-y-1 relative overflow-hidden">
+                        <div key={order.id} className="p-4 bg-neutral-900/50 border border-white/10 rounded-xl flex flex-col gap-3 group hover:border-white/20 transition-all shadow-lg shadow-black/20 hover:shadow-purple-900/10 hover:-translate-y-1 relative overflow-hidden">
                             {/* Status Bar */}
                             <div className={`absolute left-0 top-0 bottom-0 w-1 ${isPositive ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                            
-                            <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${order.side === 'LONG' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
-                                    {order.side === 'LONG' ? 'COMPRADO' : 'VENDIDO'}
-                                </span>
-                                <span className="font-bold text-white text-sm">{order.symbol.replace('USDT', '/USD')}</span>
-                                {/* Número da entrada */}
-                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                                    #{entryNumber}
-                                </span>
-                                {/* 🎯 Contract Count Badge */}
-                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                                    {order.amount} {order.amount === 1 ? 'contrato' : 'contratos'}
-                                </span>
+
+                            {/* Top row: direction + symbol + badges + PnL */}
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${order.side === 'LONG' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                                      {order.side === 'LONG' ? 'COMPRADO' : 'VENDIDO'}
+                                  </span>
+                                  <span className="font-bold text-white text-sm">{order.symbol.replace('USDT', '/USD')}</span>
+                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                                      #{entryNumber}
+                                  </span>
+                                  {/* Contracts badge */}
+                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                      {order.contracts ?? 1} {(order.contracts ?? 1) === 1 ? 'contrato' : 'contratos'}
+                                  </span>
                                 </div>
                                 <div className="flex gap-3 text-[10px] text-slate-500 font-mono">
-                                    <span>Entry: ${(order.price || 0).toFixed(2)}</span>
+                                    <span>Entrada: ${(order.price || 0).toFixed(2)}</span>
                                     <span>Lev: {(order.leverage || 0).toFixed(1)}x</span>
+                                    <span>Capital: ${(order.amount || 0).toFixed(0)}</span>
                                 </div>
+                              </div>
+                              <div className="text-right z-10 shrink-0">
+                                  <div className={`${isPositive ? 'text-emerald-400' : 'text-red-400'} font-bold font-mono text-lg leading-none mb-1`}>
+                                      {isPositive ? '+' : ''}{pnlPercent}%
+                                  </div>
+                                  <div className={`text-[10px] uppercase tracking-wider font-mono ${isPositive ? 'text-emerald-500/60' : 'text-red-500/60'}`}>
+                                      {isPositive ? '+' : ''}${pnlValue}
+                                  </div>
+                              </div>
                             </div>
-                            <div className="text-right z-10">
-                                <div className={`${isPositive ? 'text-emerald-400' : 'text-red-400'} font-bold font-mono text-lg leading-none mb-1`}>
-                                    {isPositive ? '+' : ''}{pnlPercent}%
-                                </div>
-                                <div className={`text-[10px] uppercase tracking-wider font-mono ${isPositive ? 'text-emerald-500/60' : 'text-red-500/60'}`}>
-                                    {isPositive ? '+' : ''}${pnlValue}
-                                </div>
-                            </div>
-                            
+
+                            {/* AI Reasoning */}
+                            {order.reasoning && (
+                              <div className="flex items-start gap-2 bg-black/30 border border-white/5 rounded-lg px-3 py-2">
+                                <span className="text-[9px] font-bold text-purple-400 uppercase tracking-widest shrink-0 mt-0.5">Motivo IA</span>
+                                <span className="text-[10px] text-slate-400 font-mono leading-relaxed">{order.reasoning}</span>
+                              </div>
+                            )}
+
                             {/* Background Glow */}
                             <div className={`absolute right-0 top-1/2 -translate-y-1/2 w-24 h-24 blur-3xl opacity-10 pointer-events-none ${isPositive ? 'bg-emerald-500' : 'bg-red-500'}`} />
                         </div>
@@ -1006,7 +1017,7 @@ export function AITrader({ compact = false, onNavigate }: { compact?: boolean; o
                                 <div className="space-y-1">
                                     <div className="flex justify-between text-[10px] text-slate-500 uppercase font-bold">
                                         <span>Gestão de Lote</span>
-                                        <span className="text-white">MAX 1</span>
+                                        <span className="text-white">MAX {config.maxContracts ?? 1}</span>
                                     </div>
                                     <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
                                         <div className="h-full bg-blue-500 w-1/2 animate-[pulse_4s_infinite]" />

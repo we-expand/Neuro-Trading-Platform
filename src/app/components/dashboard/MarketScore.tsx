@@ -35,7 +35,6 @@ import {
   CommandItem,
 } from '@/app/components/ui/command';
 import SignalDebugger from '@/app/utils/signalDebugger'; // ✅ NOVO: Debug de sinais
-import { supabase } from '@/lib/supabaseClient';
 
 type Timeframe = '1m' | '5m' | '15m' | '1h' | '4h' | '1d';
 
@@ -57,56 +56,11 @@ export default function MarketScore() {
   const { portfolio, riskProfile, setRiskProfile, config } = useTradingContext();
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // 🎯 NOVO: Calcular lucro REAL da AI baseado em trades salvos
-  const [aiProfit, setAiProfit] = useState(0);
-  const [aiProfitLoading, setAiProfitLoading] = useState(true);
-  
-  useEffect(() => {
-    // Buscar lucro real da AI do Supabase (trades executados pela IA)
-    const fetchAIProfit = async () => {
-      setAiProfitLoading(true);
-      try {
-        const { data: user } = await supabase.auth.getUser();
-        if (!user?.user?.id) {
-          console.log('[AI PROFIT] ⚠️ Usuário não autenticado, lucro = $0.00');
-          setAiProfit(0);
-          setAiProfitLoading(false);
-          return;
-        }
-
-        console.log('[AI PROFIT] 🔍 Buscando trades da AI para user:', user.user.id);
-
-        // Buscar trades fechados da AI
-        const { data: trades, error } = await supabase
-          .from('ai_trades')
-          .select('pnl')
-          .eq('user_id', user.user.id)
-          .eq('status', 'CLOSED');
-
-        if (error) {
-          console.error('[AI PROFIT] ❌ Erro ao buscar trades da AI:', error);
-          console.log('[AI PROFIT] 💡 Tabela ai_trades pode não existir. Lucro = $0.00');
-          setAiProfit(0);
-          setAiProfitLoading(false);
-          return;
-        }
-
-        console.log('[AI PROFIT] ✅ Trades encontrados:', trades?.length || 0);
-
-        // Somar PnL de todos os trades
-        const totalProfit = trades?.reduce((sum, trade) => sum + (trade.pnl || 0), 0) || 0;
-        console.log('[AI PROFIT] 💰 Lucro total calculado:', totalProfit);
-        setAiProfit(totalProfit);
-      } catch (err) {
-        console.error('[AI PROFIT] ❌ Erro ao calcular lucro AI:', err);
-        setAiProfit(0);
-      } finally {
-        setAiProfitLoading(false);
-      }
-    };
-
-    fetchAIProfit();
-  }, [portfolio?.equity]); // Recalcular quando equity mudar
+  // 🎯 Lucro AI: lê do portfolio local em tempo real (inclui demo + live)
+  const aiProfit = portfolio
+    ? portfolio.equity - (portfolio.initialBalance ?? portfolio.balance ?? portfolio.equity)
+    : 0;
+  const aiProfitLoading = false;
   
   // ✅ DESESTRUTURANDO DO marketScore
   const { score, components, execution, volatility, orderFlow, technicalAnalysis, marketPhase, insight } = marketScore;

@@ -194,6 +194,40 @@ try {
   console.warn('[ChartView] ⚠️ Fibonacci Extension overlay já registrado ou erro:', e);
 }
 
+// 🤖 CUSTOM OVERLAY: AI Trade Entry marker (horizontal line + reasoning label)
+const AITradeEntryOverlay: OverlayTemplate = {
+  name: 'aiTradeEntry',
+  totalStep: 2,
+  needDefaultPointFigure: false,
+  needDefaultXAxisFigure: false,
+  needDefaultYAxisFigure: true,
+  createPointFigures: ({ coordinates, bounding, overlay }: any) => {
+    if (!coordinates.length) return [];
+    const data: any = overlay.extendData || {};
+    const isLong = data.side === 'LONG';
+    const color = isLong ? '#10b981' : '#ef4444';
+    const lineY = coordinates[0].y;
+    const label = `${isLong ? '▲' : '▼'} ${data.contracts ?? 1}× | ${data.reasoning ?? ''}`;
+    return [
+      {
+        type: 'line',
+        attrs: { coordinates: [{ x: 0, y: lineY }, { x: bounding.width, y: lineY }] },
+        styles: { style: 'dashed', color, size: 1, dashValue: [4, 4] },
+      },
+      {
+        type: 'text',
+        ignoreEvent: true,
+        attrs: { x: 8, y: lineY - 5, text: label, baseline: 'bottom' },
+        styles: { color, size: 11, family: 'monospace' },
+      },
+    ];
+  },
+};
+
+try {
+  registerOverlay(AITradeEntryOverlay);
+} catch {}
+
 type Timeframe = '1m' | '5m' | '15m' | '30m' | '1H' | '2H' | '4H' | '1D' | '1W' | '1M';
 
 type DrawingTool = 
@@ -459,7 +493,7 @@ function formatBrazilianPrice(price: number, decimals: number = 2): string {
 
 export function ChartView() {
   // 🔥 NOVO: Sincronizar com contexto global
-  const { selectedAsset, setSelectedAsset } = useTradingContext();
+  const { selectedAsset, setSelectedAsset, activeOrders } = useTradingContext();
   
   // ❌ REMOVIDO: useMarketData() - agora usamos apenas os candles do gráfico
   
@@ -980,6 +1014,65 @@ export function ChartView() {
     };
     */
   }, [crosshairMode]);
+
+  // 🤖 AI ORDER MARKERS — draw entry lines with reasoning for active AI positions
+  useEffect(() => {
+    const chart = chartInstanceRef.current;
+    if (!chart) return;
+
+    try { chart.removeOverlay({ groupId: 'ai-orders' }); } catch {}
+
+    const ordersForSymbol = activeOrders.filter(o =>
+      o.symbol === selectedSymbol ||
+      o.symbol.replace('USDT', 'USD') === selectedSymbol ||
+      o.symbol === selectedSymbol.replace('USD', 'USDT')
+    );
+
+    ordersForSymbol.forEach(order => {
+      const isLong = order.side === 'LONG';
+      const contracts = order.contracts ?? 1;
+
+      // Entry: custom aiTradeEntry overlay
+      try {
+        chart.createOverlay({
+          name: 'aiTradeEntry',
+          groupId: 'ai-orders',
+          id: `ai-entry-${order.id}`,
+          points: [{ timestamp: order.timestamp, value: order.price }],
+          extendData: { side: order.side, contracts, reasoning: order.reasoning, confidence: order.ai_confidence },
+          lock: true,
+        });
+      } catch {}
+
+      // TP: priceLine (cyan)
+      if (order.tp) {
+        try {
+          chart.createOverlay({
+            name: 'priceLine',
+            groupId: 'ai-orders',
+            id: `ai-tp-${order.id}`,
+            points: [{ timestamp: order.timestamp, value: order.tp }],
+            styles: { line: { color: '#06b6d4', size: 1, style: 'dashed' }, text: { color: '#06b6d4', size: 10 } },
+            lock: true,
+          });
+        } catch {}
+      }
+
+      // SL: priceLine (amber)
+      if (order.sl) {
+        try {
+          chart.createOverlay({
+            name: 'priceLine',
+            groupId: 'ai-orders',
+            id: `ai-sl-${order.id}`,
+            points: [{ timestamp: order.timestamp, value: order.sl }],
+            styles: { line: { color: '#f59e0b', size: 1, style: 'dashed' }, text: { color: '#f59e0b', size: 10 } },
+            lock: true,
+          });
+        } catch {}
+      }
+    });
+  }, [activeOrders, selectedSymbol]);
 
   // 🆕 FUNÇÃO PARA ADICIONAR/REMOVER INDICADOR
   const toggleIndicator = (indicator: IndicatorConfig) => {
