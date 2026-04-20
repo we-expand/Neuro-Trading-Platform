@@ -109,13 +109,6 @@ export const LandingPage = ({ onLoginClick, onRegisterClick, lang, setLang }: { 
             >
               {t.nav.login}
             </button>
-            <button 
-              onClick={onRegisterClick}
-              className="bg-emerald-500 text-white px-6 py-2 rounded-full font-bold hover:bg-emerald-400 transition-colors text-sm tracking-wide shadow-[0_0_15px_rgba(16,185,129,0.3)]"
-            >
-              {/* @ts-ignore - 'register' will be available on the type after update */}
-              {t.nav.register || "CRIAR CONTA"}
-            </button>
           </div>
         </div>
       </nav>
@@ -146,15 +139,6 @@ export const LandingPage = ({ onLoginClick, onRegisterClick, lang, setLang }: { 
           </p>
 
           <div className="flex flex-col md:flex-row gap-6 justify-center items-center">
-            <button 
-              onClick={onRegisterClick}
-              className="group relative px-8 py-4 bg-white text-black rounded-full font-semibold tracking-wide overflow-hidden"
-            >
-              <span className="relative z-10 flex items-center gap-2">
-                {t.hero.ctaStart} <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </span>
-              <div className="absolute inset-0 bg-cyan-400 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300"></div>
-            </button>
             {/* TEMPORARIAMENTE DESABILITADO - Causando erro
             <button 
               onClick={downloadProposalAsDoc}
