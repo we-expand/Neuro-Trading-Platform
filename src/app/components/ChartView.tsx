@@ -1915,23 +1915,23 @@ export function ChartView() {
 
     try {
       const chartId = chartIdRef.current;
-      
+      const chartEl = chartContainerRef.current!;
+
       // Dispose any existing chart
       try {
-        dispose(chartId);
+        dispose(chartEl);
         console.log('[ChartView] 🧹 Disposed existing chart');
       } catch (e) {
         console.log('[ChartView] ℹ️ No existing chart to dispose');
       }
-      
-      console.log('[ChartView] 📊 Calling init() with ID:', chartId);
-      
-      // ✅ CORREÇÃO: Garantir que estamos passando o ID correto
-      const chart = init(chartId);
+
+      console.log('[ChartView] 📊 Calling init() with DOM element:', chartEl);
+
+      // ✅ Usar elemento DOM diretamente (mais confiável que string ID)
+      const chart = init(chartEl);
 
       if (!chart) {
-        console.error('[ChartView] ❌ init() returned null or undefined');
-        console.error('[ChartView] 🔍 Debugging - DOM element exists:', document.getElementById(chartId));
+        console.error('[ChartView] ❌ init() returned null — element may have zero dimensions');
         return;
       }
 
@@ -2541,7 +2541,7 @@ export function ChartView() {
         window.removeEventListener('resize', handleResize);
         clearInterval(refreshInterval);
         try {
-          dispose(chartId);
+          dispose(chartEl);
         } catch (e) {
           console.log('[ChartView] ℹ️ Chart already disposed');
         }
