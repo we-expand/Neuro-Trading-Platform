@@ -3574,7 +3574,7 @@ export function ChartView() {
           <div 
             ref={chartContainerRef} 
             id={chartIdRef.current}
-            className="flex-1 bg-black relative"
+            className="w-full bg-black relative" style={{ height: "600px", minHeight: "600px", display: "block" }}
             style={{ 
               minHeight: '600px',
               height: '100%',

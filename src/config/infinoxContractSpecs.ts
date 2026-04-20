@@ -31,7 +31,7 @@ import { ContractSpec } from './contractSpecs';
 const FOREX_MAJOR = {
   tickSize: 0.00001,
   tickValue: 1,
-  pointValue: 10,
+  pointValue: 1000,
   contractSize: 100000,
   currency: 'USD',
   minLotSize: 0.01,
@@ -40,7 +40,7 @@ const FOREX_MAJOR = {
 const FOREX_CROSS_STRONG = {
   tickSize: 0.00001,
   tickValue: 1.2,
-  pointValue: 12,
+  pointValue: 1002,
   contractSize: 100000,
   currency: 'USD',
   minLotSize: 0.01,
@@ -58,7 +58,7 @@ const FOREX_CROSS_WEAK = {
 const FOREX_JPY = {
   tickSize: 0.001,
   tickValue: 0.1,
-  pointValue: 10,
+  pointValue: 1000,
   contractSize: 100000,
   currency: 'USD',
   minLotSize: 0.01,
@@ -75,8 +75,8 @@ const FOREX_EXOTIC = {
 
 const CRYPTO_STANDARD = {
   tickSize: 0.01,
-  tickValue: 0.01,
-  pointValue: 1,
+  tickValue: 1.0,
+  pointValue: 100,
   contractSize: 1,
   currency: 'USD',
   minLotSize: 0.01,
@@ -85,7 +85,7 @@ const CRYPTO_STANDARD = {
 const CRYPTO_CHEAP = {
   tickSize: 0.0001,
   tickValue: 0.0001,
-  pointValue: 1,
+  pointValue: 100,
   contractSize: 1,
   currency: 'USD',
   minLotSize: 1,
@@ -112,7 +112,7 @@ const INDICES_EU = {
 const METAL_GOLD = {
   tickSize: 0.01,
   tickValue: 1.0,    // 1 lot = 100 oz × $0.01/tick = $1 per tick per lot
-  pointValue: 100,   // $100 per $1 move per lot (100 oz × $1)
+  pointValue: 10000,   // $100 per $1 move per lot (100 oz × $1)
   contractSize: 100,
   currency: 'USD',
   minLotSize: 0.01,
@@ -130,7 +130,7 @@ const METAL_SILVER = {
 const ENERGY_OIL = {
   tickSize: 0.01,
   tickValue: 10,
-  pointValue: 1000,
+  pointValue: 100000,
   contractSize: 1000,
   currency: 'USD',
   minLotSize: 0.01,
@@ -148,7 +148,7 @@ const COMMODITY_STANDARD = {
 const STOCK_STANDARD = {
   tickSize: 0.01,
   tickValue: 1.0,    // 1 lot = 100 ações × $0.01/tick = $1 per tick per lot
-  pointValue: 100,   // $100 por $1 de movimento por lote (100 ações × $1)
+  pointValue: 10000,   // $100 por $1 de movimento por lote (100 ações × $1)
   contractSize: 100,
   currency: 'USD',
   minLotSize: 0.01,
@@ -157,7 +157,7 @@ const STOCK_STANDARD = {
 const BOND_US = {
   tickSize: 0.015625, // 1/64
   tickValue: 15.625,
-  pointValue: 1000,
+  pointValue: 100000,
   contractSize: 1000,
   currency: 'USD',
   minLotSize: 1,
@@ -184,7 +184,7 @@ export const INFINOX_CONTRACT_SPECS: Record<string, Partial<ContractSpec>> = {
   // ============================================================
   'EURAUD': { ...FOREX_CROSS_WEAK, category: 'FOREX', description: 'Euro vs Australian Dollar' },
   'EURCAD': { ...FOREX_CROSS_WEAK, pointValue: 7.5, category: 'FOREX', description: 'Euro vs Canadian Dollar' },
-  'EURCHF': { ...FOREX_CROSS_STRONG, pointValue: 11, category: 'FOREX', description: 'Euro vs Swiss Franc' },
+  'EURCHF': { ...FOREX_CROSS_STRONG, pointValue: 1001, category: 'FOREX', description: 'Euro vs Swiss Franc' },
   'EURGBP': { ...FOREX_CROSS_STRONG, category: 'FOREX', description: 'Euro vs British Pound' },
   'EURJPY': { ...FOREX_JPY, tickValue: 0.09, pointValue: 9, category: 'FOREX', description: 'Euro vs Japanese Yen' },
   'EURNOK': { ...FOREX_EXOTIC, pointValue: 6, category: 'FOREX', description: 'Euro vs Norwegian Krone' },
@@ -202,8 +202,8 @@ export const INFINOX_CONTRACT_SPECS: Record<string, Partial<ContractSpec>> = {
   // ============================================================
   'GBPAUD': { ...FOREX_CROSS_WEAK, pointValue: 8.5, category: 'FOREX', description: 'British Pound vs Australian Dollar' },
   'GBPCAD': { ...FOREX_CROSS_WEAK, pointValue: 9, category: 'FOREX', description: 'British Pound vs Canadian Dollar' },
-  'GBPCHF': { ...FOREX_CROSS_STRONG, pointValue: 13, category: 'FOREX', description: 'British Pound vs Swiss Franc' },
-  'GBPJPY': { ...FOREX_JPY, tickValue: 0.11, pointValue: 11, category: 'FOREX', description: 'British Pound vs Japanese Yen' },
+  'GBPCHF': { ...FOREX_CROSS_STRONG, pointValue: 1003, category: 'FOREX', description: 'British Pound vs Swiss Franc' },
+  'GBPJPY': { ...FOREX_JPY, tickValue: 0.11, pointValue: 1001, category: 'FOREX', description: 'British Pound vs Japanese Yen' },
   'GBPNZD': { ...FOREX_CROSS_WEAK, pointValue: 7, category: 'FOREX', description: 'British Pound vs New Zealand Dollar' },
   'GBPSEK': { ...FOREX_EXOTIC, pointValue: 6.5, category: 'FOREX', description: 'British Pound vs Swedish Krona' },
 
@@ -246,13 +246,13 @@ export const INFINOX_CONTRACT_SPECS: Record<string, Partial<ContractSpec>> = {
   'USDTHB': { ...FOREX_EXOTIC, pointValue: 2, category: 'FOREX', description: 'US Dollar vs Thai Baht' },
   'USDTRY': { ...FOREX_EXOTIC, pointValue: 2, category: 'FOREX', description: 'US Dollar vs Turkish Lira' },
   'USDCLP': { ...FOREX_EXOTIC, pointValue: 2, category: 'FOREX', description: 'US Dollar vs Chilean Peso' },
-  'USDCOP': { ...FOREX_EXOTIC, pointValue: 1.5, category: 'FOREX', description: 'US Dollar vs Colombian Peso' },
+  'USDCOP': { ...FOREX_EXOTIC, pointValue: 100.5, category: 'FOREX', description: 'US Dollar vs Colombian Peso' },
   'USDCZK': { ...FOREX_EXOTIC, pointValue: 3, category: 'FOREX', description: 'US Dollar vs Czech Koruna' },
-  'USDIDR': { ...FOREX_EXOTIC, pointValue: 1, category: 'FOREX', description: 'US Dollar vs Indonesian Rupiah' },
+  'USDIDR': { ...FOREX_EXOTIC, pointValue: 100, category: 'FOREX', description: 'US Dollar vs Indonesian Rupiah' },
   'USDKRW': { ...FOREX_EXOTIC, pointValue: 2, category: 'FOREX', description: 'US Dollar vs South Korean Won' },
   'USDPHP': { ...FOREX_EXOTIC, pointValue: 2, category: 'FOREX', description: 'US Dollar vs Philippine Peso' },
   'USDTWD': { ...FOREX_EXOTIC, pointValue: 2, category: 'FOREX', description: 'US Dollar vs Taiwan Dollar' },
-  'USDVND': { ...FOREX_EXOTIC, pointValue: 1, category: 'FOREX', description: 'US Dollar vs Vietnamese Dong' },
+  'USDVND': { ...FOREX_EXOTIC, pointValue: 100, category: 'FOREX', description: 'US Dollar vs Vietnamese Dong' },
   'USDBRL': { ...FOREX_EXOTIC, pointValue: 3, category: 'FOREX', description: 'US Dollar vs Brazilian Real' },
   'USDZAR': { ...FOREX_EXOTIC, pointValue: 4, category: 'FOREX', description: 'US Dollar vs South African Rand' },
 
@@ -264,8 +264,8 @@ export const INFINOX_CONTRACT_SPECS: Record<string, Partial<ContractSpec>> = {
   'XAUEUR': { ...METAL_GOLD, currency: 'EUR', category: 'METALS', description: 'Gold vs Euro' },
   'XAUGBP': { ...METAL_GOLD, currency: 'GBP', category: 'METALS', description: 'Gold vs British Pound' },
   'XAUAUD': { ...METAL_GOLD, currency: 'AUD', category: 'METALS', description: 'Gold vs Australian Dollar' },
-  'XPTUSD': { ...METAL_GOLD, pointValue: 1, category: 'METALS', description: 'Platinum vs US Dollar' },
-  'XPDUSD': { ...METAL_GOLD, pointValue: 1, category: 'METALS', description: 'Palladium vs US Dollar' },
+  'XPTUSD': { ...METAL_GOLD, pointValue: 100, category: 'METALS', description: 'Platinum vs US Dollar' },
+  'XPDUSD': { ...METAL_GOLD, pointValue: 100, category: 'METALS', description: 'Palladium vs US Dollar' },
   'COPPER': { tickSize: 0.0001, tickValue: 0.25, pointValue: 25, contractSize: 25000, currency: 'USD', minLotSize: 1, category: 'METALS', description: 'Copper Futures' },
 
   // ============================================================
@@ -273,7 +273,7 @@ export const INFINOX_CONTRACT_SPECS: Record<string, Partial<ContractSpec>> = {
   // ============================================================
   'USOUSD': { ...ENERGY_OIL, category: 'ENERGY', description: 'WTI Crude Oil' },
   'UKOUSD': { ...ENERGY_OIL, category: 'ENERGY', description: 'Brent Crude Oil' },
-  'NGAS': { tickSize: 0.001, tickValue: 10, pointValue: 10000, contractSize: 10000, currency: 'USD', minLotSize: 0.01, category: 'ENERGY', description: 'Natural Gas' },
+  'NGAS': { tickSize: 0.001, tickValue: 10, pointValue: 1000000, contractSize: 10000, currency: 'USD', minLotSize: 0.01, category: 'ENERGY', description: 'Natural Gas' },
 
   // ============================================================
   // 🌾 COMMODITIES
@@ -282,9 +282,9 @@ export const INFINOX_CONTRACT_SPECS: Record<string, Partial<ContractSpec>> = {
   'CORNUSD': { ...COMMODITY_STANDARD, category: 'COMMODITIES', description: 'Corn Futures' },
   'SOYBEANUSD': { ...COMMODITY_STANDARD, category: 'COMMODITIES', description: 'Soybean Futures' },
   'COFFEEUSD': { tickSize: 0.05, tickValue: 18.75, pointValue: 375, contractSize: 37500, currency: 'USD', minLotSize: 0.1, category: 'COMMODITIES', description: 'Coffee Arabica' },
-  'SUGARUSD': { tickSize: 0.01, tickValue: 11.20, pointValue: 1120, contractSize: 112000, currency: 'USD', minLotSize: 0.1, category: 'COMMODITIES', description: 'Sugar' },
+  'SUGARUSD': { tickSize: 0.01, tickValue: 11.20, pointValue: 100120, contractSize: 112000, currency: 'USD', minLotSize: 0.1, category: 'COMMODITIES', description: 'Sugar' },
   'COTTONUSD': { tickSize: 0.01, tickValue: 5, pointValue: 500, contractSize: 50000, currency: 'USD', minLotSize: 0.1, category: 'COMMODITIES', description: 'Cotton' },
-  'COCOAUSD': { tickSize: 1, tickValue: 10, pointValue: 10, contractSize: 10, currency: 'USD', minLotSize: 1, category: 'COMMODITIES', description: 'Cocoa' },
+  'COCOAUSD': { tickSize: 1, tickValue: 10, pointValue: 1000, contractSize: 10, currency: 'USD', minLotSize: 1, category: 'COMMODITIES', description: 'Cocoa' },
 
   // ============================================================
   // 📈 ÍNDICES
@@ -293,20 +293,20 @@ export const INFINOX_CONTRACT_SPECS: Record<string, Partial<ContractSpec>> = {
   'NAS100': { tickSize: 0.25, tickValue: 5, pointValue: 20, contractSize: 1, currency: 'USD', minLotSize: 0.1, category: 'INDICES', description: 'NASDAQ 100 E-mini' },
   'US30': { tickSize: 1, tickValue: 5, pointValue: 5, contractSize: 1, currency: 'USD', minLotSize: 0.1, category: 'INDICES', description: 'Dow Jones E-mini' },
   'US2000': { tickSize: 0.1, tickValue: 5, pointValue: 50, contractSize: 1, currency: 'USD', minLotSize: 0.1, category: 'INDICES', description: 'Russell 2000 E-mini' },
-  'VIX': { tickSize: 0.05, tickValue: 50, pointValue: 1000, contractSize: 1000, currency: 'USD', minLotSize: 1, category: 'INDICES', description: 'Volatility Index' },
+  'VIX': { tickSize: 0.05, tickValue: 50, pointValue: 100000, contractSize: 1000, currency: 'USD', minLotSize: 1, category: 'INDICES', description: 'Volatility Index' },
   
   'GER40': { ...INDICES_EU, category: 'INDICES', description: 'DAX 40 (Germany)' },
-  'UK100': { tickSize: 0.5, tickValue: 5, pointValue: 10, contractSize: 1, currency: 'GBP', minLotSize: 0.1, category: 'INDICES', description: 'FTSE 100 (UK)' },
+  'UK100': { tickSize: 0.5, tickValue: 5, pointValue: 1000, contractSize: 1, currency: 'GBP', minLotSize: 0.1, category: 'INDICES', description: 'FTSE 100 (UK)' },
   'FRA40': { ...INDICES_EU, category: 'INDICES', description: 'CAC 40 (France)' },
   'EU50': { ...INDICES_EU, category: 'INDICES', description: 'Euro Stoxx 50' },
   'SPA35': { ...INDICES_EU, category: 'INDICES', description: 'IBEX 35 (Spain)' },
   'ITA40': { ...INDICES_EU, category: 'INDICES', description: 'FTSE MIB (Italy)' },
-  'SWI20': { tickSize: 1, tickValue: 10, pointValue: 10, contractSize: 1, currency: 'CHF', minLotSize: 0.1, category: 'INDICES', description: 'SMI (Switzerland)' },
-  'AUS200': { tickSize: 1, tickValue: 10, pointValue: 10, contractSize: 1, currency: 'AUD', minLotSize: 0.1, category: 'INDICES', description: 'ASX 200 (Australia)' },
+  'SWI20': { tickSize: 1, tickValue: 10, pointValue: 1000, contractSize: 1, currency: 'CHF', minLotSize: 0.1, category: 'INDICES', description: 'SMI (Switzerland)' },
+  'AUS200': { tickSize: 1, tickValue: 10, pointValue: 1000, contractSize: 1, currency: 'AUD', minLotSize: 0.1, category: 'INDICES', description: 'ASX 200 (Australia)' },
   'JPN225': { tickSize: 1, tickValue: 5, pointValue: 5, contractSize: 1, currency: 'JPY', minLotSize: 0.1, category: 'INDICES', description: 'Nikkei 225 (Japan)' },
-  'HK50': { tickSize: 1, tickValue: 10, pointValue: 10, contractSize: 1, currency: 'HKD', minLotSize: 0.1, category: 'INDICES', description: 'Hang Seng (Hong Kong)' },
-  'CN50': { tickSize: 1, tickValue: 10, pointValue: 10, contractSize: 1, currency: 'CNY', minLotSize: 0.1, category: 'INDICES', description: 'China A50' },
-  'SING': { tickSize: 1, tickValue: 10, pointValue: 10, contractSize: 1, currency: 'SGD', minLotSize: 0.1, category: 'INDICES', description: 'Singapore Index' },
+  'HK50': { tickSize: 1, tickValue: 10, pointValue: 1000, contractSize: 1, currency: 'HKD', minLotSize: 0.1, category: 'INDICES', description: 'Hang Seng (Hong Kong)' },
+  'CN50': { tickSize: 1, tickValue: 10, pointValue: 1000, contractSize: 1, currency: 'CNY', minLotSize: 0.1, category: 'INDICES', description: 'China A50' },
+  'SING': { tickSize: 1, tickValue: 10, pointValue: 1000, contractSize: 1, currency: 'SGD', minLotSize: 0.1, category: 'INDICES', description: 'Singapore Index' },
 
   // ============================================================
   // ₿ CRIPTOMOEDAS
@@ -334,7 +334,7 @@ export const INFINOX_CONTRACT_SPECS: Record<string, Partial<ContractSpec>> = {
   'AVAXUSD': { ...CRYPTO_STANDARD, minLotSize: 0.1, category: 'CRYPTO', description: 'Avalanche vs USD' },
   'AVAXUSDT': { ...CRYPTO_STANDARD, minLotSize: 0.1, category: 'CRYPTO', description: 'Avalanche vs USDT' },
   'ATOMUSD': { ...CRYPTO_STANDARD, minLotSize: 0.1, category: 'CRYPTO', description: 'Cosmos vs USD' },
-  'DOGEUSDT': { tickSize: 0.00001, tickValue: 0.00001, pointValue: 1, contractSize: 1, currency: 'USD', minLotSize: 10, category: 'CRYPTO', description: 'Dogecoin vs USDT' },
+  'DOGEUSDT': { tickSize: 0.00001, tickValue: 0.00001, pointValue: 100, contractSize: 1, currency: 'USD', minLotSize: 10, category: 'CRYPTO', description: 'Dogecoin vs USDT' },
 
   // ============================================================
   // 📊 AÇÕES UK
@@ -402,8 +402,8 @@ export const INFINOX_CONTRACT_SPECS: Record<string, Partial<ContractSpec>> = {
   'US30YR': { ...BOND_US, category: 'BONDS', description: 'US 30-Year Treasury Bond' },
   'US5YR': { ...BOND_US, category: 'BONDS', description: 'US 5-Year Treasury Note' },
   'US2YR': { ...BOND_US, category: 'BONDS', description: 'US 2-Year Treasury Note' },
-  'BUND': { tickSize: 0.01, tickValue: 10, pointValue: 1000, contractSize: 1000, currency: 'EUR', minLotSize: 1, category: 'BONDS', description: 'German 10-Year Bund' },
-  'GILT': { tickSize: 0.01, tickValue: 10, pointValue: 1000, contractSize: 1000, currency: 'GBP', minLotSize: 1, category: 'BONDS', description: 'UK 10-Year Gilt' },
+  'BUND': { tickSize: 0.01, tickValue: 10, pointValue: 100000, contractSize: 1000, currency: 'EUR', minLotSize: 1, category: 'BONDS', description: 'German 10-Year Bund' },
+  'GILT': { tickSize: 0.01, tickValue: 10, pointValue: 100000, contractSize: 1000, currency: 'GBP', minLotSize: 1, category: 'BONDS', description: 'UK 10-Year Gilt' },
 
   // ============================================================
   // 📅 FUTUROS
