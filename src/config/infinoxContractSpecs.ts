@@ -111,8 +111,8 @@ const INDICES_EU = {
 
 const METAL_GOLD = {
   tickSize: 0.01,
-  tickValue: 0.01,
-  pointValue: 1,
+  tickValue: 1.0,    // 1 lot = 100 oz × $0.01/tick = $1 per tick per lot
+  pointValue: 100,   // $100 per $1 move per lot (100 oz × $1)
   contractSize: 100,
   currency: 'USD',
   minLotSize: 0.01,
@@ -120,8 +120,8 @@ const METAL_GOLD = {
 
 const METAL_SILVER = {
   tickSize: 0.001,
-  tickValue: 0.05,
-  pointValue: 50,
+  tickValue: 5.0,    // 1 lot = 5000 oz × $0.001/tick = $5 per tick per lot
+  pointValue: 5000,  // $5000 por $1 de movimento por lote
   contractSize: 5000,
   currency: 'USD',
   minLotSize: 0.01,
@@ -147,11 +147,11 @@ const COMMODITY_STANDARD = {
 
 const STOCK_STANDARD = {
   tickSize: 0.01,
-  tickValue: 0.01,
-  pointValue: 1,
+  tickValue: 1.0,    // 1 lot = 100 ações × $0.01/tick = $1 per tick per lot
+  pointValue: 100,   // $100 por $1 de movimento por lote (100 ações × $1)
   contractSize: 100,
   currency: 'USD',
-  minLotSize: 1,
+  minLotSize: 0.01,
 };
 
 const BOND_US = {

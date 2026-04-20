@@ -3276,7 +3276,7 @@ export function ChartView() {
           animation: pulse-slow 1.5s ease-in-out;
         }
       `}</style>
-      <div className="h-full w-full bg-black flex relative">
+      <div className="flex-1 min-h-0 w-full bg-black flex relative" style={{ height: '100%' }}>
       {/* Asset List Modal - Flutuante Centralizado */}
       {showAssetList && (
         <>

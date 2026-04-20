@@ -974,25 +974,30 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
             sl: sl.toFixed(selectedSymbol.includes('EUR') || selectedSymbol.includes('GBP') ? 5 : 2)
           });
           
-          // 💰 CALCULAR TAMANHO DA POSIÇÃO (Position Sizing)
-          // Baseado no capital alocado e risco por trade
+          // 💰 POSITION SIZING — PADRÃO INDUSTRIA (CFD/Forex)
+          // Fórmula: lots = riskAmount / (SL_distance × valor_por_ponto_por_lot)
           const currentBalance = portfolioRef.current?.balance || 100;
-          const allocatedCapital = Math.min(aiConfig.allocatedCapital, currentBalance);
-          const riskPercentage = aiConfig.riskPerTrade / 100; // Ex: 2% = 0.02
+          const riskAmount = currentBalance * (aiConfig.riskPerTrade / 100); // $100 * 2% = $2
 
-          // Capital para este trade (% do capital alocado)
-          const tradeCapital = allocatedCapital * riskPercentage;
+          // Valor por ponto por lote para o ativo
+          const contractSpec = getContractSpec(selectedSymbol);
+          const valuePerPointPerLot = contractSpec.tickValue / contractSpec.tickSize; // ex: gold = 1.0/0.01 = 100
 
-          // Garantir valor mínimo para evitar P&L zerado
-          const minTradeCapital = 10; // Mínimo $10 por trade
-          const finalTradeCapital = Math.max(tradeCapital, minTradeCapital);
+          // SL distance em preço absoluto
+          const slDistancePrice = Math.abs(currentPrice - sl);
 
-          // 🔒 RESPEITAR maxContracts: nunca abrir mais contratos que o configurado
-          const contractsToUse = Math.max(1, Math.floor(aiConfig.maxContracts));
-          if (contractsToUse <= 0) {
-            addLog(`⛔ TRADE BLOQUEADO: maxContracts = ${aiConfig.maxContracts} (deve ser >= 1)`);
-            return;
-          }
+          // Calcular lotes pelo risco
+          let calculatedLots = slDistancePrice > 0 && valuePerPointPerLot > 0
+            ? riskAmount / (slDistancePrice * valuePerPointPerLot)
+            : contractSpec.minLotSize;
+
+          // Arredondar para 2 casas decimais e aplicar mínimo/máximo
+          calculatedLots = Math.round(calculatedLots * 100) / 100;
+          const minLots = contractSpec.minLotSize;
+          const maxLots = aiConfig.maxContracts; // maxContracts = max lotes permitido pelo usuário
+          const contractsToUse = Math.min(maxLots, Math.max(minLots, calculatedLots));
+
+          const finalTradeCapital = contractsToUse * currentPrice * contractSpec.contractSize / 100; // Margem estimada
 
           // 💸 COMISSÃO DE ENTRADA: deduzida imediatamente do saldo
           const entryCommission = (aiConfig.commissionPerContract ?? 2.5) * contractsToUse;
@@ -1001,16 +1006,17 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
             balance: prev.balance - entryCommission,
             equity: prev.equity - entryCommission,
           }));
-          addLog(`💸 Comissão entrada: -$${entryCommission.toFixed(2)} (${contractsToUse} contratos × $${(aiConfig.commissionPerContract ?? 2.5).toFixed(2)})`);
-          
+
           console.log(`[POSITION SIZING] 💰 ${selectedSymbol}:`, {
-            currentBalance: `$${currentBalance.toFixed(2)}`,
-            allocatedCapital: `$${allocatedCapital.toFixed(2)}`,
-            riskPerTrade: `${aiConfig.riskPerTrade}%`,
-            calculatedTradeCapital: `$${tradeCapital.toFixed(2)}`,
-            finalTradeCapital: `$${finalTradeCapital.toFixed(2)}`,
-            reason: tradeCapital < minTradeCapital ? `⬆️ Aumentado para mínimo de $${minTradeCapital}` : '✅ Valor adequado'
+            balance: `$${currentBalance.toFixed(2)}`,
+            riskAmount: `$${riskAmount.toFixed(2)}`,
+            slDistance: slDistancePrice.toFixed(5),
+            valuePerPointPerLot: valuePerPointPerLot.toFixed(2),
+            calculatedLots: calculatedLots.toFixed(4),
+            contractsToUse: contractsToUse.toFixed(2),
+            entryCommission: `$${entryCommission.toFixed(2)}`,
           });
+          addLog(`📐 Position sizing: ${contractsToUse.toFixed(2)} lotes | Risco: $${riskAmount.toFixed(2)} | Comissão: -$${entryCommission.toFixed(2)}`);
           
           // ✅ CRIAR TRADE PROFISSIONAL
           const newTrade: TradeVisual = {
