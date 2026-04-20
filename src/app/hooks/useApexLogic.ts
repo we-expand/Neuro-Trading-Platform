@@ -1024,7 +1024,7 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
             symbol: selectedSymbol,
             side,
             amount: finalTradeCapital,
-            contracts: contractsToUse,
+            contracts: Math.min(contractsToUse, 1.0),
             commission: entryCommission, // comissão de saída = mesmo valor (por simplificação)
             price: currentPrice,
             currentPrice: currentPrice,
