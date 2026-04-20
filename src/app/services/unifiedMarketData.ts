@@ -132,25 +132,31 @@ function setCache(symbol: string, data: MarketPrice): void {
 // YAHOO FINANCE SERVICE
 // ========================================
 
+const YAHOO_CORS_PROXIES = [
+  (u: string) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+  (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  (u: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+];
+
 class YahooFinanceService {
-  private baseUrl = 'https://query1.finance.yahoo.com';
-  
   async getPrice(yahooSymbol: string): Promise<MarketPrice | null> {
+    const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?interval=1m&range=1d`;
+
+    let data: any = null;
+    for (const makeProxy of YAHOO_CORS_PROXIES) {
+      try {
+        const response = await fetch(makeProxy(targetUrl), { signal: AbortSignal.timeout(6000) });
+        if (!response.ok) continue;
+        data = await response.json();
+        break;
+      } catch { /* try next */ }
+    }
+
     try {
-      const url = `${this.baseUrl}/v8/finance/chart/${yahooSymbol}?interval=1m&range=1d`;
-      
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-      
-      if (!response.ok) {
-        console.warn(`[Yahoo] Failed to fetch ${yahooSymbol}: ${response.status}`);
+      if (!data) {
+        console.warn(`[Yahoo] All proxies failed for ${yahooSymbol}`);
         return null;
       }
-      
-      const data = await response.json();
       const result = data.chart.result[0];
       
       if (!result || !result.meta) {

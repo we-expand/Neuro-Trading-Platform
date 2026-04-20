@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState, lazy, Suspense } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState, lazy, Suspense, Component } from 'react';
 import { init, dispose, getSupportedOverlays, registerOverlay, registerYAxis } from 'klinecharts';
 import type { KLineData, OverlayTemplate, AxisTemplate } from 'klinecharts';
 import { 
@@ -41,7 +41,18 @@ import {
 } from 'lucide-react';
 
 // 🚀 LAZY LOAD: LiquidityDetector carrega apenas quando necessário
-const LiquidityDetector = lazy(() => import('@/app/components/LiquidityDetector').then(m => ({ default: m.LiquidityDetector })));
+const LiquidityDetector = lazy(() =>
+  import('@/app/components/LiquidityDetector')
+    .then(m => ({ default: m.LiquidityDetector }))
+    .catch(() => ({ default: () => null as any })) // silently degrade on stale chunk
+);
+
+// Silent boundary so stale-chunk errors don't crash the whole chart
+class LiquidityErrorBoundary extends Component<{ children: React.ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  render() { return this.state.failed ? null : this.props.children; }
+}
 
 import { DrawingToolbar } from '@/app/components/chart/DrawingToolbar';
 import { DrawingContextToolbar } from '@/app/components/chart/DrawingContextToolbar';
@@ -3585,13 +3596,15 @@ export function ChartView() {
           </div>
 
           {/* Professional Liquidity Detector - LAZY LOADED ⚡ */}
-          <Suspense fallback={
-            <div className="flex items-center justify-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-500" />
-            </div>
-          }>
-            <LiquidityDetector zones={liquidityZones} currentPrice={currentPrice} />
-          </Suspense>
+          <LiquidityErrorBoundary>
+            <Suspense fallback={
+              <div className="flex items-center justify-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-500" />
+              </div>
+            }>
+              <LiquidityDetector zones={liquidityZones} currentPrice={currentPrice} />
+            </Suspense>
+          </LiquidityErrorBoundary>
         </div>
 
         {/* Indicators Sidebar */}

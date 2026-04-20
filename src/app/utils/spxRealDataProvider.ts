@@ -180,62 +180,78 @@ async function fetchFromTwelveData(symbol: string): Promise<MarketData | null> {
   }
 }
 
+const YAHOO_SYMBOL_MAP: Record<string, string> = {
+  SPX500: '^GSPC',
+  NAS100: '^IXIC',
+  US30: '^DJI',
+  XAUUSD: 'GC=F',
+  XAGUSD: 'SI=F',
+  EURUSD: 'EURUSD=X',
+  GBPUSD: 'GBPUSD=X',
+  USDJPY: 'JPY=X',
+  USDCAD: 'CAD=X',
+  AUDUSD: 'AUDUSD=X',
+  NZDUSD: 'NZDUSD=X',
+  BTCUSD: 'BTC-USD',
+  ETHUSD: 'ETH-USD',
+};
+
+// Multiple CORS proxies — tried in order until one works
+const CORS_PROXIES = [
+  (u: string) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+  (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  (u: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+];
+
+async function fetchYahooViaProxy(yfSymbol: string): Promise<any | null> {
+  const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${yfSymbol}?interval=1d&range=2d`;
+
+  for (const makeProxy of CORS_PROXIES) {
+    try {
+      const res = await fetch(makeProxy(targetUrl), { signal: AbortSignal.timeout(6000) });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const result = data?.chart?.result?.[0];
+      if (result?.meta?.regularMarketPrice) return result;
+    } catch {
+      // try next proxy
+    }
+  }
+  return null;
+}
+
 /**
  * 🌐 YAHOO FINANCE API: Dados reais gratuitos (Sem chave API)
  */
 async function fetchFromYahoo(symbol: string): Promise<MarketData | null> {
   try {
-    const symbolMap: Record<string, string> = {
-      SPX500: '^GSPC',
-      NAS100: '^IXIC',
-      US30: '^DJI',
-      XAUUSD: 'GC=F',
-      XAGUSD: 'SI=F',
-      EURUSD: 'EURUSD=X',
-      GBPUSD: 'GBPUSD=X',
-      USDJPY: 'JPY=X',
-      USDCAD: 'CAD=X',
-      AUDUSD: 'AUDUSD=X',
-      NZDUSD: 'NZDUSD=X',
-      BTCUSD: 'BTC-USD',
-      ETHUSD: 'ETH-USD'
+    const yfSymbol = YAHOO_SYMBOL_MAP[symbol] || symbol;
+    const result = await fetchYahooViaProxy(yfSymbol);
+
+    if (!result) {
+      console.warn(`[YahooFinance] ❌ Todos os proxies falharam para ${symbol}`);
+      return null;
+    }
+
+    const meta = result.meta;
+    const currentPrice = meta.regularMarketPrice;
+    const previousClose = meta.chartPreviousClose || meta.previousClose || currentPrice;
+    const change = currentPrice - previousClose;
+    const changePercent = previousClose ? (change / previousClose) * 100 : 0;
+
+    const marketData: MarketData = {
+      value: currentPrice,
+      change,
+      changePercent,
+      timestamp: new Date(meta.regularMarketTime * 1000),
+      source: 'Yahoo Finance (Real-Time)',
+      open: meta.regularMarketOpen || currentPrice,
+      high: meta.regularMarketDayHigh || currentPrice,
+      low: meta.regularMarketDayLow || currentPrice,
     };
 
-    const yfSymbol = symbolMap[symbol] || symbol;
-    const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${yfSymbol}?interval=1d&range=1d`;
-    // Usando um proxy CORS público para garantir acesso do navegador
-    const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
-    
-    console.log(`[YahooFinance] 🌐 Buscando ${symbol}...`);
-    
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    
-    const data = await response.json();
-    const result = data?.chart?.result?.[0];
-    
-    if (result && result.meta && result.meta.regularMarketPrice) {
-      const currentPrice = result.meta.regularMarketPrice;
-      const previousClose = result.meta.chartPreviousClose || result.meta.previousClose || currentPrice;
-      const change = currentPrice - previousClose;
-      const changePercent = previousClose ? (change / previousClose) * 100 : 0;
-      
-      const marketData: MarketData = {
-        value: currentPrice,
-        change: change,
-        changePercent: changePercent,
-        timestamp: new Date(result.meta.regularMarketTime * 1000),
-        source: 'Yahoo Finance (Real-Time)',
-        open: result.meta.regularMarketDayLow || currentPrice, // O Yahoo tem regularMarketDayLow/High mas nem sempre open no meta
-        high: result.meta.regularMarketDayHigh || currentPrice,
-        low: result.meta.regularMarketDayLow || currentPrice,
-      };
-      
-      console.log(`[YahooFinance] ✅ ${symbol}: $${marketData.value.toFixed(2)} (${marketData.changePercent > 0 ? '+' : ''}${marketData.changePercent.toFixed(2)}%)`);
-      return marketData;
-    }
-    
-    throw new Error('Dados inválidos do Yahoo');
+    console.log(`[YahooFinance] ✅ ${symbol}: $${marketData.value.toFixed(2)} (${marketData.changePercent > 0 ? '+' : ''}${marketData.changePercent.toFixed(2)}%)`);
+    return marketData;
   } catch (error) {
     console.warn(`[YahooFinance] ❌ Falha ao buscar ${symbol}:`, error);
     return null;
