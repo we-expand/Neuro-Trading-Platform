@@ -116,11 +116,7 @@ export function AuthOverlay({ onAuthenticated, initialMode = 'login' }: AuthOver
           setLoading(false);
           // 🚀 MODIFICADO: Ao invés de chamar handleNext() (que iria para step 3),
           // vamos direto para autenticação
-          toast.success("Autenticado!", { description: "Entrando na plataforma..." });
-          // Esperar um pouco para UX e depois autenticar
-          setTimeout(() => {
-            onAuthenticated({ email, name: userName || 'Trader' });
-          }, 500);
+          onAuthenticated({ email, name: userName || 'Trader' });
           return true;
       }
       return false;
@@ -147,13 +143,11 @@ export function AuthOverlay({ onAuthenticated, initialMode = 'login' }: AuthOver
         const data = await response.json();
         if (!response.ok) {
             if (data.error && (data.error.includes("ativo") || data.error.includes("already registered"))) {
-                 toast.info("Verificada", { description: "Conta ativa. Tentando login..." });
                  const success = await performLogin();
                  if (success) return;
             }
             throw new Error(data.error || "Falha na ativação");
         }
-        toast.success("Conta Ativada!", { description: "Entrando..." });
         await performLogin();
     } catch (err: any) {
         if (!errorMessage) {
