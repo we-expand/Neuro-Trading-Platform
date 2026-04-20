@@ -84,7 +84,7 @@ export const LandingPage = ({ onLoginClick, onRegisterClick, lang, setLang }: { 
 
       {/* Navbar */}
       <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-black/20 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+        <div className="max-w-[1400px] mx-auto px-12 h-24 flex items-center justify-between">
           <div className="flex-1 flex justify-center md:justify-start">
             <NeuralLogo size="md" variant="icon-only" />
           </div>
@@ -221,8 +221,11 @@ export const LandingPage = ({ onLoginClick, onRegisterClick, lang, setLang }: { 
         </div>
       </section>
 
-      {/* SOCIAL INTELLIGENCE REMOVIDO */}
-      <div className="hidden"><div className="max-w-7xl mx-auto px-6 relative z-10">
+      {/* 🔥 SOCIAL INTELLIGENCE */}
+      <section className="py-32 bg-transparent relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-purple-900/10 via-transparent to-blue-900/10 pointer-events-none"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-purple-500/20 blur-3xl pointer-events-none"></div>
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
           {/* Header */}
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
@@ -247,176 +250,6 @@ export const LandingPage = ({ onLoginClick, onRegisterClick, lang, setLang }: { 
               <span className="text-purple-400">Sua IA aprende com milhões de traders globalmente.</span>
             </p>
           </motion.div>
-
-          {/* Grid de Fontes */}
-          <div className="grid md:grid-cols-3 gap-8 mb-16">
-            {/* TWITTER */}
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="group relative"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500 opacity-50 group-hover:opacity-100"></div>
-              
-              <div className="relative bg-black/60 backdrop-blur-xl border border-blue-500/30 rounded-3xl p-8 hover:border-blue-400/50 transition-all duration-500">
-                {/* Icon */}
-                <div className="mb-6 flex items-center justify-between">
-                  <div className="p-4 bg-blue-500/10 rounded-2xl border border-blue-500/20">
-                    <svg className="w-8 h-8 text-blue-400" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                    </svg>
-                  </div>
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
-                    <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-                    <span className="text-xs font-bold text-emerald-400 uppercase">Live</span>
-                  </div>
-                </div>
-
-                {/* Content */}
-                <h3 className="text-2xl font-black text-white mb-3">Twitter/X</h3>
-                <p className="text-slate-400 text-sm leading-relaxed mb-6">
-                  Scraping inteligente de <strong className="text-blue-400">hashtags, influencers e trending topics</strong>. 
-                  Detectamos pump & dump antes da multidão.
-                </p>
-
-                {/* Métricas */}
-                <div className="space-y-3 mb-6">
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
-                    <span className="text-xs text-slate-500 uppercase tracking-wider">Tweets/Dia</span>
-                    <span className="text-lg font-mono font-bold text-white">~250k</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
-                    <span className="text-xs text-slate-500 uppercase tracking-wider">Influencers</span>
-                    <span className="text-lg font-mono font-bold text-white">500+</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
-                    <span className="text-xs text-slate-500 uppercase tracking-wider">Acurácia</span>
-                    <span className="text-lg font-mono font-bold text-emerald-400">87%</span>
-                  </div>
-                </div>
-
-                {/* Tags */}
-                <div className="flex flex-wrap gap-2">
-                  <span className="px-2 py-1 bg-blue-500/10 rounded text-[10px] font-mono text-blue-400 border border-blue-500/20">#Bitcoin</span>
-                  <span className="px-2 py-1 bg-blue-500/10 rounded text-[10px] font-mono text-blue-400 border border-blue-500/20">#Ethereum</span>
-                  <span className="px-2 py-1 bg-blue-500/10 rounded text-[10px] font-mono text-blue-400 border border-blue-500/20">#Crypto</span>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* REDDIT */}
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-              className="group relative"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-red-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500 opacity-50 group-hover:opacity-100"></div>
-              
-              <div className="relative bg-black/60 backdrop-blur-xl border border-orange-500/30 rounded-3xl p-8 hover:border-orange-400/50 transition-all duration-500">
-                {/* Icon */}
-                <div className="mb-6 flex items-center justify-between">
-                  <div className="p-4 bg-orange-500/10 rounded-2xl border border-orange-500/20">
-                    <svg className="w-8 h-8 text-orange-400" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
-                    </svg>
-                  </div>
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
-                    <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-                    <span className="text-xs font-bold text-emerald-400 uppercase">Live</span>
-                  </div>
-                </div>
-
-                {/* Content */}
-                <h3 className="text-2xl font-black text-white mb-3">Reddit</h3>
-                <p className="text-slate-400 text-sm leading-relaxed mb-6">
-                  Monitora <strong className="text-orange-400">r/CryptoCurrency, r/WallStreetBets</strong> e 20+ subreddits. 
-                  Detecta posts virais e sentimento da comunidade.
-                </p>
-
-                {/* Métricas */}
-                <div className="space-y-3 mb-6">
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
-                    <span className="text-xs text-slate-500 uppercase tracking-wider">Posts/Dia</span>
-                    <span className="text-lg font-mono font-bold text-white">~50k</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
-                    <span className="text-xs text-slate-500 uppercase tracking-wider">Subreddits</span>
-                    <span className="text-lg font-mono font-bold text-white">20+</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
-                    <span className="text-xs text-slate-500 uppercase tracking-wider">Acurácia</span>
-                    <span className="text-lg font-mono font-bold text-emerald-400">82%</span>
-                  </div>
-                </div>
-
-                {/* Tags */}
-                <div className="flex flex-wrap gap-2">
-                  <span className="px-2 py-1 bg-orange-500/10 rounded text-[10px] font-mono text-orange-400 border border-orange-500/20">r/Cryptocurrency</span>
-                  <span className="px-2 py-1 bg-orange-500/10 rounded text-[10px] font-mono text-orange-400 border border-orange-500/20">r/WSB</span>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* TELEGRAM */}
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.3 }}
-              className="group relative"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500 opacity-50 group-hover:opacity-100"></div>
-              
-              <div className="relative bg-black/60 backdrop-blur-xl border border-cyan-500/30 rounded-3xl p-8 hover:border-cyan-400/50 transition-all duration-500">
-                {/* Icon */}
-                <div className="mb-6 flex items-center justify-between">
-                  <div className="p-4 bg-cyan-500/10 rounded-2xl border border-cyan-500/20">
-                    <svg className="w-8 h-8 text-cyan-400" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
-                    </svg>
-                  </div>
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
-                    <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-                    <span className="text-xs font-bold text-emerald-400 uppercase">Live</span>
-                  </div>
-                </div>
-
-                {/* Content */}
-                <h3 className="text-2xl font-black text-white mb-3">Telegram</h3>
-                <p className="text-slate-400 text-sm leading-relaxed mb-6">
-                  Rastreia <strong className="text-cyan-400">canais de whales, grupos VIP</strong> e sinais institucionais. 
-                  Acesso a informação privilegiada antes do mercado.
-                </p>
-
-                {/* Métricas */}
-                <div className="space-y-3 mb-6">
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
-                    <span className="text-xs text-slate-500 uppercase tracking-wider">Mensagens/Dia</span>
-                    <span className="text-lg font-mono font-bold text-white">~15k</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
-                    <span className="text-xs text-slate-500 uppercase tracking-wider">Canais VIP</span>
-                    <span className="text-lg font-mono font-bold text-white">150+</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
-                    <span className="text-xs text-slate-500 uppercase tracking-wider">Acurácia</span>
-                    <span className="text-lg font-mono font-bold text-emerald-400">91%</span>
-                  </div>
-                </div>
-
-                {/* Tags */}
-                <div className="flex flex-wrap gap-2">
-                  <span className="px-2 py-1 bg-cyan-500/10 rounded text-[10px] font-mono text-cyan-400 border border-cyan-500/20">Whales</span>
-                  <span className="px-2 py-1 bg-cyan-500/10 rounded text-[10px] font-mono text-cyan-400 border border-cyan-500/20">VIP Signals</span>
-                  <span className="px-2 py-1 bg-cyan-500/10 rounded text-[10px] font-mono text-cyan-400 border border-cyan-500/20">Institucional</span>
-                </div>
-              </div>
-            </motion.div>
-          </div>
 
           {/* Dashboard Preview */}
           <motion.div
@@ -509,7 +342,7 @@ export const LandingPage = ({ onLoginClick, onRegisterClick, lang, setLang }: { 
             </button>
           </motion.div>
         </div>
-      </div>
+      </section>
 
       <div id="institutional" className="scroll-mt-20">
           <PricingSection lang={lang} />
