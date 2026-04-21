@@ -9,7 +9,7 @@
   "scripts": {
     "build": "vite build",
     "analyze": "./node_modules/.bin/vite build --mode analyze",
-    "clear-cache": "rm -rf node_modules/.vite && rm -rf .vite && rm -rf dist && echo '\u2705 Cache limpo! Execute: npm run dev'",
+    "clear-cache": "rm -rf node_modules/.vite && rm -rf .vite && rm -rf dist && echo '✅ Cache limpo! Execute: npm run dev'",
     "dev": "vite"
   },
   "dependencies": {
@@ -63,9 +63,11 @@
     "metaapi.cloud-sdk": "^29.3.2",
     "motion": "12.23.24",
     "next-themes": "0.4.6",
+    "react": "18.3.1",
     "react-day-picker": "8.10.1",
     "react-dnd": "16.0.1",
     "react-dnd-html5-backend": "16.0.1",
+    "react-dom": "18.3.1",
     "react-grid-layout": "^2.2.2",
     "react-hook-form": "7.55.0",
     "react-intersection-observer": "^10.0.0",
@@ -84,9 +86,7 @@
     "vite": "6.3.5",
     "vite-plugin-node-polyfills": "^0.24.0",
     "xlsx": "^0.18.5",
-    "zustand": "^5.0.12",
-    "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "zustand": "^5.0.12"
   },
   "peerDependencies": {
     "react": "18.3.1",
@@ -104,5 +104,8 @@
     "overrides": {
       "vite": "6.3.5"
     }
+  },
+  "devDependencies": {
+    "terser": "^5.46.1"
   }
 }
