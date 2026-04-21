@@ -1,16 +1,4 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-html, body, #root {
-  margin: 0;
-  padding: 0;
-  background: #000;
-  color: #fff;
-  min-height: 100vh;
-}
-
-img, svg, video, canvas {
-  max-width: 100%;
-  height: auto;
-}
+html,body,#root{margin:0;padding:0;background:#000;color:#fff;min-height:100vh}img,svg,video,canvas{max-width:100%;height:auto}
