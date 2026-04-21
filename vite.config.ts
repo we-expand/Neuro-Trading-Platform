@@ -11,7 +11,7 @@ export default defineConfig({
     minify: 'terser',
     rollupOptions: {
       output: {
-        # Isso aqui mata o erro 'Circular chunk' que vimos no log
+        // Remove a divisão complexa que causava o erro de inicialização 't'
         manualChunks: undefined 
       }
     }
