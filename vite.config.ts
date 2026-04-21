@@ -5,16 +5,13 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react(), nodePolyfills()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
-  },
+  resolve: { alias: { '@': path.resolve(__dirname, './src') } },
   build: {
     minify: 'terser',
+    cssCodeSplit: false, // Força o CSS num arquivo só para não sumir o layout
     rollupOptions: {
       output: {
-        manualChunks: undefined
+        manualChunks: undefined // Impede a separação que causava o erro 't'
       }
     }
   }
