@@ -654,3 +654,13 @@
 [data-sonner-toast] svg path {
   fill: currentColor !important;
 }
+/* EMERGENCY OVERRIDE BY GEMINI */
+#root, #app, body, html {
+  height: 100vh !important;
+  width: 100vw !important;
+  margin: 0;
+  padding: 0;
+  overflow: auto !important;
+  background-color: #000 !important; /* Força o fundo preto da sua marca */
+  display: block !important;
+}
