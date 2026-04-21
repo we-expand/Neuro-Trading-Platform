@@ -9,7 +9,7 @@
   "scripts": {
     "build": "vite build",
     "analyze": "./node_modules/.bin/vite build --mode analyze",
-    "clear-cache": "rm -rf node_modules/.vite && rm -rf .vite && rm -rf dist && echo '✅ Cache limpo! Execute: npm run dev'",
+    "clear-cache": "rm -rf node_modules/.vite && rm -rf .vite && rm -rf dist && echo '\u2705 Cache limpo! Execute: npm run dev'",
     "dev": "vite"
   },
   "dependencies": {

@@ -4,10 +4,7 @@ import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import path from 'path'
 
 export default defineConfig({
-  plugins: [
-    react(),
-    nodePolyfills(),
-  ],
+  plugins: [react(), nodePolyfills()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -17,7 +14,7 @@ export default defineConfig({
     minify: 'terser',
     rollupOptions: {
       output: {
-        manualChunks: undefined 
+        manualChunks: undefined
       }
     }
   }
