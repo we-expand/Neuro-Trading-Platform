@@ -9,7 +9,7 @@
   "scripts": {
     "build": "vite build",
     "analyze": "./node_modules/.bin/vite build --mode analyze",
-    "clear-cache": "rm -rf node_modules/.vite && rm -rf .vite && rm -rf dist && echo '✅ Cache limpo! Execute: npm run dev'",
+    "clear-cache": "rm -rf node_modules/.vite && rm -rf .vite && rm -rf dist && echo '\u2705 Cache limpo! Execute: npm run dev'",
     "dev": "vite"
   },
   "dependencies": {
@@ -84,7 +84,9 @@
     "vite": "6.3.5",
     "vite-plugin-node-polyfills": "^0.24.0",
     "xlsx": "^0.18.5",
-    "zustand": "^5.0.12"
+    "zustand": "^5.0.12",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
   },
   "peerDependencies": {
     "react": "18.3.1",
