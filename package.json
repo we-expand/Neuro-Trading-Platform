@@ -9,7 +9,7 @@
   "scripts": {
     "build": "vite build",
     "analyze": "./node_modules/.bin/vite build --mode analyze",
-    "clear-cache": "rm -rf node_modules/.vite && rm -rf .vite && rm -rf dist && echo '\u2705 Cache limpo! Execute: npm run dev'",
+    "clear-cache": "rm -rf node_modules/.vite && rm -rf .vite && rm -rf dist && echo '✅ Cache limpo! Execute: npm run dev'",
     "dev": "vite"
   },
   "dependencies": {
@@ -80,7 +80,6 @@
     "recharts": "2.15.2",
     "sonner": "2.0.3",
     "tailwind-merge": "3.2.0",
-    "tailwindcss": "4.1.12",
     "tw-animate-css": "1.3.8",
     "vaul": "1.1.2",
     "vite": "6.3.5",
@@ -106,6 +105,9 @@
     }
   },
   "devDependencies": {
+    "autoprefixer": "^10.5.0",
+    "postcss": "^8.5.10",
+    "tailwindcss": "^4.2.3",
     "terser": "^5.46.1"
   }
 }
