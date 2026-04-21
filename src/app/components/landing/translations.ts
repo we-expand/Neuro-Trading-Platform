@@ -6,8 +6,7 @@ export const translations = {
       protocol: "Infrastructure",
       intelligence: "Neural Engine",
       syndicate: "Institutional",
-      login: "LOGIN",
-      register: "REGISTER"
+      login: "LOGIN"
     },
     hero: {
       systemStatus: "AI Algorithm",
@@ -35,32 +34,25 @@ export const translations = {
       frequency: "/month",
       tiers: [
         {
-          name: 'Free',
-          price: 'R$0',
-          description: 'Essential access for market exploration and manual execution.',
-          cta: 'Start Free',
-          features: ['Basic Neural Engine Access', 'Manual Trade Execution', 'Standard Latency (50ms)', 'Max Leverage 1:1000', 'Community Support', '1 Workspace']
+          name: 'Protocol: Genesis',
+          price: '$0',
+          description: 'Essential access for early validation and manual execution.',
+          cta: 'Deploy Instance',
+          features: ['Basic Neural Engine Access', 'Manual Trade Execution', 'Standard Latency (50ms)', 'Max Leverage 1:1000', 'Community Ledger Support', '1 Workspace']
         },
         {
-          name: 'Node Pro',
-          price: 'R$199',
-          description: 'Automated infrastructure for active traders and semi-automated execution.',
-          cta: 'Upgrade to Pro',
-          features: ['Advanced Neural Signals', 'MT5 Copy-Trading', 'Low Latency (<20ms)', 'Max Leverage 1:1000', 'AI Sentiment Analysis', '3 Workspaces', 'Priority Queue']
+          name: 'Protocol: Velocity',
+          price: '$299',
+          description: 'Automated infrastructure for high-frequency quantitative strategies.',
+          cta: 'Upgrade Uplink',
+          features: ['Advanced Neural Forecasting', 'Auto-Research (20/day)', 'Low Latency (<10ms)', 'Max Leverage 1:1000', 'Direct Market Access (DMA)', '5 Workspaces', 'API Access']
         },
         {
-          name: 'Node Institutional',
-          price: 'R$299',
-          description: 'Full power for high-frequency strategies and Prop Firms.',
-          cta: 'Get Institutional',
-          features: ['Genetic Algorithms', 'Dynamic Auto-Hedging', 'Ultra-Low Latency (<5ms)', 'Flexible Leverage (> 1:1000)', 'Dedicated VPS', '10 Workspaces', 'Account Manager']
-        },
-        {
-          name: 'Syndicate Core',
+          name: 'Protocol: Sovereign',
           price: 'Custom',
-          description: 'White-label solutions and dedicated banking-grade infrastructure.',
+          description: 'Dedicated hardware and institutional-grade encryption for funds.',
           cta: 'Contact Syndicate',
-          features: ['Exclusive Neural Cluster', 'Dark Pool Access', 'Zero Latency Co-location', 'Unlimited Leverage', 'FIX Protocol API', 'Unlimited Workspaces', 'LGPD/MiFID II Compliance']
+          features: ['Dedicated Neural Cluster', 'Unlimited Auto-Research', 'Zero Latency Co-location', 'Custom Leverage (> 1:1000)', 'White-glove Integration', 'Unlimited Workspaces', 'On-premise Deployment Option']
         }
       ]
     },
@@ -99,8 +91,7 @@ export const translations = {
       protocol: "Infraestrutura",
       intelligence: "Motor Neural",
       syndicate: "Institucional",
-      login: "ENTRAR",
-      register: "CRIAR CONTA"
+      login: "ENTRAR"
     },
     hero: {
       systemStatus: "Sistema Quant Ativo",
@@ -128,30 +119,30 @@ export const translations = {
       frequency: "/mês",
       tiers: [
         {
-          name: 'Free',
+          name: 'Node: Starter',
           price: 'Gratuito',
-          description: 'Acesso essencial para explorar o mercado e execução manual.',
-          cta: 'Começar Grátis',
+          description: 'Acesso essencial para validação de latência e execução manual.',
+          cta: 'Implantar Node',
           features: ['Previsão Neural Básica', 'Execução Manual', 'Latência Standard (50ms)', 'Alavancagem Max 1:1000', 'Suporte Comunitário', '1 Workspace']
         },
         {
-          name: 'Node Pro',
-          price: 'R$199',
+          name: 'Node: Pro',
+          price: '€99',
           description: 'Infraestrutura para traders ativos e execução semi-automatizada.',
-          cta: 'Ativar Node Pro',
+          cta: 'Ativar Pro',
           features: ['Sinais Neurais Avançados', 'Copy-Trading MT5', 'Baixa Latência (<20ms)', 'Alavancagem Max 1:1000', 'Análise de Sentimento IA', '3 Workspaces', 'Prioridade na Fila']
         },
         {
-          name: 'Node Institucional',
-          price: 'R$299',
-          description: 'Poder computacional para HFT, estratégias avançadas e Prop Firms.',
+          name: 'Node: Institutional',
+          price: '€499',
+          description: 'Poder computacional bruto para HFT e Prop Firms.',
           cta: 'Solicitar Acesso',
-          features: ['Algoritmos Genéticos', 'Auto-Hedging Dinâmico', 'Ultra-Baixa Latência (<5ms)', 'Alavancagem Flexível (> 1:1000)', 'VPS Dedicado', '10 Workspaces', 'Gerente de Conta']
+          features: ['Algoritmos Genéticos', 'Auto-Hedging Dinâmico', 'Ultra-Baixa Latência (<5ms)', 'Alavancagem Flexível (> 1:1000)', 'VPS Dedicado em Londres', '10 Workspaces', 'Gerente de Conta']
         },
         {
           name: 'Syndicate Core',
           price: 'Sob Medida',
-          description: 'Soluções White-Label e infraestrutura bancária dedicada para fundos e mesas proprietárias.',
+          description: 'Soluções White-Label e infraestrutura bancária dedicada.',
           cta: 'Contatar Sindicato',
           features: ['Cluster Neural Exclusivo', 'Dark Pool Access', 'Co-localização Zero Latência', 'Alavancagem Ilimitada', 'API Fix Protocol', 'Workspaces Ilimitados', 'Conformidade LGPD/MiFID II']
         }
@@ -220,32 +211,25 @@ export const translations = {
       frequency: "/mes",
       tiers: [
         {
-          name: 'Free',
-          price: 'R$0',
-          description: 'Acceso esencial para explorar el mercado y ejecución manual.',
-          cta: 'Empezar Gratis',
-          features: ['Acceso Básico al Motor Neuronal', 'Ejecución Manual', 'Latencia Estándar (50ms)', 'Apalancamiento Max 1:1000', 'Soporte Comunitario', '1 Espacio de Trabajo']
+          name: 'Protocolo: Génesis',
+          price: '$0',
+          description: 'Acceso esencial para validación temprana y ejecución manual.',
+          cta: 'Desplegar Instancia',
+          features: ['Acceso Básico al Motor Neuronal', 'Ejecución Manual de Operaciones', 'Latencia Estándar (50ms)', 'Apalancamiento Max 1:1000', 'Soporte Ledger Comunitario', '1 Espacio de Trabajo']
         },
         {
-          name: 'Node Pro',
-          price: 'R$199',
-          description: 'Infraestructura para traders activos y ejecución semi-automatizada.',
-          cta: 'Activar Node Pro',
-          features: ['Señales Neuronales Avanzadas', 'Copy-Trading MT5', 'Baja Latencia (<20ms)', 'Apalancamiento Max 1:1000', 'Análisis de Sentimiento IA', '3 Espacios de Trabajo', 'Prioridad en Cola']
+          name: 'Protocolo: Velocidad',
+          price: '$299',
+          description: 'Infraestructura automatizada para estrategias cuantitativas de alta frecuencia.',
+          cta: 'Actualizar Uplink',
+          features: ['Predicción Neuronal Avanzada', 'Auto-Investigación (20/día)', 'Baja Latencia (<10ms)', 'Apalancamiento Max 1:1000', 'Acceso Directo al Mercado (DMA)', '5 Espacios de Trabajo', 'Acceso API']
         },
         {
-          name: 'Node Institucional',
-          price: 'R$299',
-          description: 'Poder computacional para HFT, estrategias avanzadas y Prop Firms.',
-          cta: 'Solicitar Acceso',
-          features: ['Algoritmos Genéticos', 'Auto-Hedging Dinámico', 'Ultra-Baja Latencia (<5ms)', 'Apalancamiento Flexible (> 1:1000)', 'VPS Dedicado', '10 Espacios de Trabajo', 'Gerente de Cuenta']
-        },
-        {
-          name: 'Syndicate Core',
+          name: 'Protocolo: Soberano',
           price: 'A Medida',
-          description: 'Soluciones White-Label e infraestructura bancaria dedicada para fondos y mesas propietarias.',
+          description: 'Hardware dedicado y encriptación de grado institucional para fondos.',
           cta: 'Contactar Sindicato',
-          features: ['Clúster Neuronal Exclusivo', 'Dark Pool Access', 'Co-localización Cero Latencia', 'Apalancamiento Ilimitado', 'API Fix Protocol', 'Espacios de Trabajo Ilimitados', 'Cumplimiento LGPD/MiFID II']
+          features: ['Clúster Neuronal Dedicado', 'Auto-Investigación Ilimitada', 'Co-localización Cero Latencia', 'Apalancamiento Ilimitado (> 1:1000)', 'Integración White-glove', 'Espacios de Trabajo Ilimitados', 'Opción de Despliegue Local']
         }
       ]
     },

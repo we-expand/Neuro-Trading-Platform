@@ -1,20 +1,17 @@
 /**
- * 🎯 REAL MARKET DATA SERVICE - v4.0 PRODUCTION
- * 
+ * 🎯 REAL MARKET DATA SERVICE - v4.1 PRODUCTION
+ *
  * Sistema robusto e estável para 300+ ativos:
- * ✅ Crypto (Binance API) - Dados reais validados
+ * ✅ Crypto (Binance API DIRETA) - Sem quota limits!
  * ✅ Forex/Índices/Commodities (Fallback) - Dados simulados realistas
  * ✅ Auto-recovery 24/7
  * ✅ Health check automático
  * ✅ Logs estruturados para monitoramento
  */
 
-import { projectId, publicAnonKey } from '/utils/supabase/info';
+// ✅ Removido import de projectId/publicAnonKey — API_BASE do Supabase não é utilizado aqui
 import { PriceValidator } from './PriceValidator';
-
-const API_BASE = `https://${projectId}.supabase.co/functions/v1/server`;
-
-import { fetchMarketData as fetchYahooData } from '@/app/utils/spxRealDataProvider';
+import { fetchDirectBinance, isBinanceSymbol } from './DirectBinanceService';
 
 export interface RealMarketData {
   symbol: string;
@@ -64,33 +61,9 @@ export async function getRealMarketData(symbol: string): Promise<RealMarketData>
     if (isCryptoSymbol(normalizedSymbol)) {
       data = await fetchBinanceDataWithRetry(normalizedSymbol);
     }
-    // 2. FOREX/ÍNDICES/COMMODITIES: Yahoo Finance
+    // 2. FOREX/ÍNDICES/COMMODITIES: Fallback realista
     else {
-      try {
-        const yahooData = await fetchYahooData(normalizedSymbol);
-        if (yahooData && yahooData.source !== 'Fallback (Não Disponível)') {
-          data = {
-            symbol: normalizedSymbol,
-            price: yahooData.value,
-            bid: yahooData.value,
-            ask: yahooData.value,
-            high: yahooData.high,
-            low: yahooData.low,
-            open: yahooData.open,
-            volume: yahooData.volume,
-            change: yahooData.change,
-            changePercent: yahooData.changePercent,
-            previousClose: yahooData.value - yahooData.change,
-            timestamp: yahooData.timestamp.getTime(),
-            source: 'yahoo',
-            isRealData: true
-          };
-        } else {
-          data = getFallbackData(normalizedSymbol);
-        }
-      } catch(e) {
-        data = getFallbackData(normalizedSymbol);
-      }
+      data = getFallbackData(normalizedSymbol);
     }
     
     // Armazenar no cache
@@ -117,16 +90,27 @@ export async function getRealMarketData(symbol: string): Promise<RealMarketData>
 }
 
 /**
- * 🔍 Verifica se é símbolo de criptomoeda
+ * 🔍 Verifica se é símbolo de criptomoeda (MELHORADO)
  */
 function isCryptoSymbol(symbol: string): boolean {
+  const normalized = symbol.toUpperCase();
+  
+  // Binance Cryptos conhecidos
+  const exactCryptos = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT', 'DOGEUSDT', 'DOTUSDT', 'AVAXUSDT', 'LINKUSDT', 'MATICUSDT', 'POLUSDT'];
+  if (exactCryptos.includes(normalized)) return true;
+
+  // Padrões de Crypto
   const cryptoPatterns = [
-    'USDT', 'BUSD', 'TUSD', 'USDC',
-    'BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA', 'DOGE', 'POL', 'DOT', 'AVAX', // POL = Polygon (rebrandado de MATIC)
+    'USDT', 'BUSD', 'TUSD', 
+    'BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA', 'DOGE', 'POL', 'DOT', 'AVAX',
     'LINK', 'UNI', 'ATOM', 'LTC', 'BCH', 'XLM', 'ALGO', 'VET', 'FIL', 'TRX'
   ];
   
-  return cryptoPatterns.some(pattern => symbol.includes(pattern));
+  // EXCLUSÕES: Pares de Forex que podem colidir (ex: USDCAD contém USDC)
+  const forexExclusions = ['USDCAD', 'EURUSD', 'GBPUSD', 'AUDUSD', 'NZDUSD', 'USDJPY', 'USDCHF'];
+  if (forexExclusions.includes(normalized)) return false;
+
+  return cryptoPatterns.some(pattern => normalized.includes(pattern));
 }
 
 /**
@@ -158,42 +142,63 @@ async function fetchBinanceDataWithRetry(symbol: string, retries = 3): Promise<R
  */
 async function fetchBinanceData(symbol: string): Promise<RealMarketData> {
   try {
-    // Normalizar símbolo CORRETAMENTE
+    // ✅ Normalizar símbolo para formato Binance (XXXUSDT)
     let binanceSymbol = symbol.toUpperCase().trim();
-    
-    // Se já termina com USDT, não fazer nada
-    if (!binanceSymbol.endsWith('USDT')) {
+
+    // Casos especiais conhecidos
+    const manualMapping: Record<string, string> = {
+      'BTCUSD': 'BTCUSDT',
+      'ETHUSD': 'ETHUSDT',
+      'SOLUSD': 'SOLUSDT',
+      'BNBUSD': 'BNBUSDT',
+      'XRPUSD': 'XRPUSDT',
+      'ADAUSD': 'ADAUSDT',
+      'DOTUSD': 'DOTUSDT',
+      'BTC': 'BTCUSDT',
+      'ETH': 'ETHUSDT'
+    };
+
+    if (manualMapping[binanceSymbol]) {
+      binanceSymbol = manualMapping[binanceSymbol];
+    } else if (!binanceSymbol.endsWith('USDT')) {
+      // Se termina com USD, troca por USDT
       if (binanceSymbol.endsWith('USD')) {
-        binanceSymbol = binanceSymbol + 'T';
-      } else if (!binanceSymbol.includes('USDT')) {
+        binanceSymbol = binanceSymbol.replace(/USD$/, 'USDT');
+      }
+      // Se não tem USDT, adiciona
+      else if (!binanceSymbol.includes('USDT')) {
         binanceSymbol = binanceSymbol + 'USDT';
       }
     }
-    
-    // 🎯 USAR PRICEVALIDATOR - Garante alinhamento com Binance REAL
-    const serverUrl = `${API_BASE}/real/binance/${binanceSymbol}`;
-    const result = await PriceValidator.validateAndAlign(binanceSymbol, serverUrl, publicAnonKey);
-    
-    // ✅ Logs COMPLETAMENTE SILENTADOS - apenas erros críticos do servidor
-    // Removido: logs de discrepancy e source
-    
-    // Converter para RealMarketData
-    return {
-      symbol: binanceSymbol,
-      price: result.data.price,
-      bid: result.data.bid,
-      ask: result.data.ask,
-      high: result.data.high,
-      low: result.data.low,
-      open: result.data.open,
-      volume: result.data.volume,
-      change: result.data.change,
-      changePercent: result.data.changePercent,
-      previousClose: result.data.open,
-      timestamp: result.data.timestamp,
-      source: 'binance',
-      isRealData: result.validated && result.source === 'server'
-    };
+
+    // 🚀 PRIORIDADE 1: SEMPRE Binance DIRETA (sem servidor!)
+    if (isBinanceSymbol(binanceSymbol)) {
+      const directData = await fetchDirectBinance(binanceSymbol);
+
+      if (directData) {
+        return {
+          symbol: binanceSymbol,
+          price: directData.price,
+          bid: directData.price * 0.9999, // Simula bid/ask
+          ask: directData.price * 1.0001,
+          high: directData.high,
+          low: directData.low,
+          open: directData.price - directData.change,
+          volume: directData.volume,
+          change: directData.change,
+          changePercent: directData.changePercent,
+          previousClose: directData.price - directData.change,
+          timestamp: directData.timestamp,
+          source: 'binance',
+          isRealData: true
+        };
+      }
+    }
+
+    // 🔄 Se Binance direta falhou, lançar erro (NÃO tentar servidor!)
+    console.warn(`[Binance] ⚠️ Binance direta falhou para ${symbol}`);
+    throw new Error('Binance direct fetch failed');
+
   } catch (error: any) {
     console.error(`[Binance] ❌ ${symbol}:`, error.message);
     throw error;

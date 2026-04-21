@@ -1,4 +1,0 @@
-CREATE TABLE IF NOT EXISTS kv_store_1dbacac6 (
-  key TEXT NOT NULL PRIMARY KEY,
-  value JSONB NOT NULL
-);

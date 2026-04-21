@@ -1,5 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
-import { projectId, publicAnonKey } from '/utils/supabase/info';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { publicAnonKey } from '/utils/supabase/info';
+import { getApiUrl } from '/utils/api/config';
+import { isEmergencyOfflineMode } from '@/app/services/EmergencyOfflineMode';
 
 interface MT5Price {
   symbol: string;
@@ -31,8 +33,19 @@ export function useMT5Prices(symbols: string[], enabled = true) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // 🔥 CRÍTICO: Estabilizar symbols com ref + JSON para evitar recriação de callback
+  // Se `symbols` é um novo array a cada render, o useCallback recria fetchPrices
+  // causando o useEffect reiniciar o interval desnecessariamente
+  const symbolsRef = useRef<string[]>(symbols);
+  const symbolsKey = symbols.join(',');
+
+  useEffect(() => {
+    symbolsRef.current = symbols;
+  }, [symbolsKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const fetchPrices = useCallback(async () => {
-    if (!enabled || symbols.length === 0) return;
+    const currentSymbols = symbolsRef.current;
+    if (!enabled || currentSymbols.length === 0) return;
 
     // Buscar credenciais MT5 do localStorage
     const mt5Token = localStorage.getItem('mt5_token');
@@ -44,12 +57,19 @@ export function useMT5Prices(symbols: string[], enabled = true) {
       return;
     }
 
+    if (isEmergencyOfflineMode()) {
+      console.log('[useMT5Prices] 🚫 Modo offline ativado - pulando fetch');
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
 
+      const apiUrl = getApiUrl('mt5-prices');
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/server/mt5-prices`,
+        apiUrl,
         {
           method: 'POST',
           headers: {
@@ -57,7 +77,7 @@ export function useMT5Prices(symbols: string[], enabled = true) {
             'Authorization': `Bearer ${publicAnonKey}`,
           },
           body: JSON.stringify({
-            symbols,
+            symbols: currentSymbols,
             token: mt5Token,
             accountId: mt5AccountId,
           }),
@@ -79,7 +99,7 @@ export function useMT5Prices(symbols: string[], enabled = true) {
       setPrices(pricesMap);
       
       const successCount = data.prices.filter(p => p.price !== null).length;
-      console.log(`[useMT5Prices] ✅ ${successCount}/${symbols.length} preços obtidos`);
+      console.log(`[useMT5Prices] ✅ ${successCount}/${currentSymbols.length} preços obtidos`);
 
     } catch (err: any) {
       console.error('[useMT5Prices] ❌ Erro:', err.message);
@@ -87,14 +107,15 @@ export function useMT5Prices(symbols: string[], enabled = true) {
     } finally {
       setLoading(false);
     }
-  }, [symbols, enabled]);
+  }, [enabled]); // 🔥 Removido `symbols` das deps — lemos via ref para evitar loop
 
   // Buscar ao montar e a cada 10 segundos
+  // 🔥 symbolsKey garante que reiniciamos o interval quando os símbolos realmente mudam
   useEffect(() => {
     fetchPrices();
     const interval = setInterval(fetchPrices, 10000); // 10s
     return () => clearInterval(interval);
-  }, [fetchPrices]);
+  }, [fetchPrices, symbolsKey]);
 
   return {
     prices,

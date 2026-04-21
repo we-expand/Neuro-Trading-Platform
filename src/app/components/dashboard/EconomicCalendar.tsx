@@ -102,76 +102,11 @@ export function EconomicCalendar() {
   // ✅ NOVA FUNÇÃO: Buscar dados reais da API (Multi-fonte)
   async function fetchRealEconomicData(): Promise<{ events: EconomicEvent[], source: string } | null> {
     try {
-      if (!projectId || !publicAnonKey) {
-        console.warn('[AGENDA ECONÔMICA] ⚠️ Credenciais Supabase não encontradas');
-        console.warn('[AGENDA ECONÔMICA] projectId:', projectId);
-        console.warn('[AGENDA ECONÔMICA] publicAnonKey:', publicAnonKey ? 'EXISTS' : 'NULL');
-        return null;
-      }
+      // 🚨 MODO OFFLINE: Supabase desabilitado (quota excedida)
+      console.log('[AGENDA ECONÔMICA] 🔄 Modo offline ativado - usando mock');
+      return null;
 
-      console.log('📡 [AGENDA ECONÔMICA] Chamando API multi-fonte...');
-      console.log('📡 [AGENDA ECONÔMICA] URL:', `https://${projectId}.supabase.co/functions/v1/server/economic-calendar`);
-
-      // Chamar servidor backend que tem acesso à API key
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/server/economic-calendar`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${publicAnonKey}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      console.log('📡 [AGENDA ECONÔMICA] Response status:', response.status);
-      console.log('📡 [AGENDA ECONÔMICA] Response ok:', response.ok);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[AGENDA ECONÔMICA] ❌ API retornou erro:', response.status);
-        console.error('[AGENDA ECONÔMICA] ❌ Erro detalhado:', errorText);
-        return null;
-      }
-
-      const data = await response.json();
-      
-      console.log('📊 [AGENDA ECONÔMICA] ✅ RESPOSTA DA API COMPLETA:', data);
-      console.log('📊 [AGENDA ECONÔMICA] RESPOSTA DA API:', {
-        source: data.source,
-        count: data.count || data.events?.length || 0,
-        hasEvents: !!data.events,
-        eventsLength: data.events?.length,
-        first3Events: data.events?.slice(0, 3).map((e: any) => ({
-          event: e.Event,
-          time: e.Date,
-          country: e.Country,
-          importance: e.Importance
-        }))
-      });
-      
-      if (!data.events || data.events.length === 0) {
-        console.warn('[AGENDA ECONÔMICA] ⚠️ Nenhum evento retornado pela API');
-        return null;
-      }
-
-      console.log(`✅ [AGENDA ECONÔMICA] ${data.events.length} eventos carregados da fonte: ${data.source}`);
-      
-      // Mapear para o formato EconomicEvent
-      return {
-        events: data.events.map((ev: any, index: number) => ({
-          id: `api_${index}_${Date.now()}`,
-          event_time: ev.Date || new Date().toISOString(),
-          country: ev.Country || 'US',
-          currency: ev.Currency || 'USD',
-          event: translateEventName(ev.Event || ev.Category || 'Evento Econômico'),
-          impact: ev.Importance === 'High' ? 'high' : ev.Importance === 'Medium' ? 'medium' : 'low',
-          actual: ev.Actual?.toString() || '',
-          forecast: ev.Forecast?.toString() || ev.TEForecast?.toString() || '',
-          previous: ev.Previous?.toString() || ''
-        })),
-        source: data.source
-      };
+      /* DESATIVADO - Quota Supabase excedida */
 
     } catch (error) {
       console.error('[AGENDA ECONÔMICA] ❌ Erro ao buscar dados:', error);

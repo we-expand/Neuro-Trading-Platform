@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase, isSupabaseActive } from '@/lib/supabaseClient';
 import { RealtimeChannel } from '@supabase/supabase-js';
+import { isEmergencyOfflineMode } from '@/app/services/EmergencyOfflineMode';
 
 interface AssetPrice {
   asset_symbol: string;
@@ -174,8 +175,8 @@ export const useSupabaseRealtime = (assets: string[] = []) => {
 
   // 🎧 SUBSCRIBE TO REALTIME UPDATES
   useEffect(() => {
-    if (!isSupabaseActive || !supabase) {
-      console.log('[SUPABASE] ⚠️ Supabase not active');
+    if (!isSupabaseActive || !supabase || isEmergencyOfflineMode()) {
+      console.log('[SUPABASE] ⚠️ Supabase not active or offline mode enabled');
       return;
     }
 
@@ -267,7 +268,7 @@ export const useSupabaseRealtime = (assets: string[] = []) => {
 
   // 📊 FETCH INITIAL DATA
   useEffect(() => {
-    if (!isSupabaseActive || !supabase || assets.length === 0) return;
+    if (!isSupabaseActive || !supabase || assets.length === 0 || isEmergencyOfflineMode()) return;
 
     const fetchInitialData = async () => {
       try {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { createRoot } from 'react-dom/client';
+import ReactDOM from 'react-dom/root';
 
 // 🛡️ PROTEÇÃO GLOBAL #0: MESSAGE PORT SHIELD (MAIS CEDO POSSÍVEL)
 import { initFigmaMessagePortShield } from './app/config/figmaMessagePortShield';
@@ -106,6 +106,43 @@ if (typeof window !== 'undefined') {
   }, true); // capture phase
   
   console.log('[MAIN] ✅ Proteção ULTRA-AGRESSIVA instalada com sucesso (4 camadas)');
+  
+  // 🛡️ CAMADA 5: INTERCEPTOR GLOBAL DE FETCH (Proteção contra 402/CORS)
+  const originalFetch = window.fetch;
+  window.fetch = async function(url: any, options?: any) {
+    const urlStr = String(url);
+    
+    // Bloquear chamadas para Supabase se estiver em modo de emergência
+    const isSupabaseCall = urlStr.includes('supabase.co');
+    const isOffline = localStorage.getItem('neural_emergency_offline') === 'true';
+    
+    if (isOffline && isSupabaseCall && !urlStr.includes('/auth/v1/token')) {
+      console.warn('[MAIN] 🚫 Bloqueando chamada Supabase em modo offline:', urlStr);
+      return new Response(JSON.stringify({ error: 'Offline Mode Active', offline: true }), {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    
+    try {
+      const response = await originalFetch(url, options);
+      
+      // Se receber 402 (Quota Exceeded) do Supabase, ativar modo offline
+      if (response.status === 402 && isSupabaseCall) {
+        console.error('[MAIN] 🚨 Supabase Quota Exceeded (402)! Ativando modo offline...');
+        localStorage.setItem('neural_emergency_offline', 'true');
+      }
+      
+      return response;
+    } catch (error) {
+      // Se der erro de rede (CORS costuma cair aqui no fetch), verificar se é Supabase
+      if (isSupabaseCall) {
+        console.error('[MAIN] ⚠️ Falha na chamada Supabase (possível CORS).');
+        // Não ativa offline imediatamente no primeiro erro de rede para evitar falsos positivos
+      }
+      throw error;
+    }
+  };
 }
 
 // 🛡️ PROTEÇÃO #2: Imports com verificação de ambiente
@@ -198,7 +235,7 @@ function initializeApp() {
       }
     };
     
-    createRoot(rootElement).render(
+    ReactDOM.createRoot(rootElement).render(
       // 🔥 STRICTMODE DESABILITADO para prevenir IframeMessageAbortError
       // StrictMode causa montagens duplas que podem interferir com message ports do Figma
       <SafeApp />

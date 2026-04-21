@@ -1,3 +1,4 @@
+const logoImage = "";
 // @ts-nocheck
 import React from 'react';
 import { LayoutDashboard, Wallet, LineChart, Bot, TrendingUp, Settings, Sparkles, ShieldCheck, Compass, ShoppingBag, Users, Trophy, Activity, Layers, BarChart3, Scale, Rocket, MessageSquare, Brain, Beaker, Server, Mic, Zap } from 'lucide-react';
@@ -42,7 +43,7 @@ export function Sidebar({ currentView, onViewChange, isAdmin, onLogout }: Sideba
         }}
       >
         <img 
-          src="" 
+          src=logoImage 
           alt="Neural Day Trader" 
           className="w-16 h-16 object-contain"
         />

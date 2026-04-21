@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS public.users (
 
 -- User activity log
 CREATE TABLE IF NOT EXISTS public.user_activity (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
   action TEXT NOT NULL,
   metadata JSONB,
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS public.user_activity (
 
 -- Real-time asset prices (streaming data)
 CREATE TABLE IF NOT EXISTS public.asset_prices (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   asset_symbol TEXT NOT NULL,
   price NUMERIC(20, 8) NOT NULL,
   bid NUMERIC(20, 8),
@@ -89,7 +89,7 @@ CREATE INDEX IF NOT EXISTS idx_asset_prices_timestamp ON public.asset_prices(tim
 
 -- Aggregated OHLCV data (for charts)
 CREATE TABLE IF NOT EXISTS public.ohlcv_data (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   asset_symbol TEXT NOT NULL,
   timeframe TEXT NOT NULL CHECK (timeframe IN ('1m', '5m', '15m', '1h', '4h', '1d', '1w', '1M')),
   open NUMERIC(20, 8) NOT NULL,
@@ -110,7 +110,7 @@ CREATE INDEX IF NOT EXISTS idx_ohlcv_symbol_timeframe ON public.ohlcv_data(asset
 
 -- Liquidity prediction events (whale alerts)
 CREATE TABLE IF NOT EXISTS public.liquidity_events (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   asset_symbol TEXT NOT NULL,
   event_type TEXT NOT NULL CHECK (event_type IN (
     'whale_buy', 'whale_sell', 'accumulation', 'distribution',
@@ -134,7 +134,7 @@ CREATE INDEX IF NOT EXISTS idx_liquidity_events_type ON public.liquidity_events(
 
 -- AI trading signals
 CREATE TABLE IF NOT EXISTS public.ai_signals (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   asset_symbol TEXT NOT NULL,
   signal_type TEXT NOT NULL CHECK (signal_type IN ('BUY', 'SELL', 'NEUTRAL')),
   confidence NUMERIC(5, 2) CHECK (confidence >= 0 AND confidence <= 100),
@@ -161,7 +161,7 @@ CREATE INDEX IF NOT EXISTS idx_ai_signals_active ON public.ai_signals(is_active,
 
 -- User trades
 CREATE TABLE IF NOT EXISTS public.trades (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
   asset_symbol TEXT NOT NULL,
   action TEXT NOT NULL CHECK (action IN ('BUY', 'SELL')),
@@ -205,7 +205,7 @@ CREATE INDEX IF NOT EXISTS idx_trades_status ON public.trades(status, entry_time
 
 -- Trading performance metrics (aggregated)
 CREATE TABLE IF NOT EXISTS public.performance_metrics (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
   period TEXT NOT NULL CHECK (period IN ('daily', 'weekly', 'monthly', 'yearly', 'all_time')),
   
@@ -242,7 +242,7 @@ CREATE TABLE IF NOT EXISTS public.performance_metrics (
 
 -- User custom strategies
 CREATE TABLE IF NOT EXISTS public.strategies (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   description TEXT,
@@ -273,7 +273,7 @@ CREATE TABLE IF NOT EXISTS public.strategies (
 
 -- Backtest results
 CREATE TABLE IF NOT EXISTS public.backtest_results (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   strategy_id UUID REFERENCES public.strategies(id) ON DELETE CASCADE,
   user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
   
@@ -311,7 +311,7 @@ CREATE INDEX IF NOT EXISTS idx_backtest_user ON public.backtest_results(user_id,
 
 -- User alerts (price alerts, signal alerts, etc)
 CREATE TABLE IF NOT EXISTS public.alerts (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
   alert_type TEXT NOT NULL CHECK (alert_type IN (
     'price_above', 'price_below', 'volume_spike',
@@ -345,7 +345,7 @@ CREATE INDEX IF NOT EXISTS idx_alerts_asset ON public.alerts(asset_symbol) WHERE
 
 -- Alert history (when alerts triggered)
 CREATE TABLE IF NOT EXISTS public.alert_history (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   alert_id UUID REFERENCES public.alerts(id) ON DELETE CASCADE,
   user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
   message TEXT NOT NULL,
@@ -359,7 +359,7 @@ CREATE TABLE IF NOT EXISTS public.alert_history (
 
 -- News articles (from crawlers)
 CREATE TABLE IF NOT EXISTS public.news_articles (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   title TEXT NOT NULL,
   content TEXT,
   summary TEXT,
@@ -391,7 +391,7 @@ CREATE INDEX IF NOT EXISTS idx_news_tags ON public.news_articles USING GIN(tags)
 
 -- Social media sentiment (Twitter, Reddit, Telegram)
 CREATE TABLE IF NOT EXISTS public.social_sentiment (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   asset_symbol TEXT NOT NULL,
   platform TEXT NOT NULL CHECK (platform IN ('twitter', 'reddit', 'telegram', 'discord')),
   
@@ -424,7 +424,7 @@ CREATE INDEX IF NOT EXISTS idx_social_sentiment_asset ON public.social_sentiment
 
 -- System logs (errors, warnings, info)
 CREATE TABLE IF NOT EXISTS public.system_logs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   level TEXT NOT NULL CHECK (level IN ('debug', 'info', 'warning', 'error', 'critical')),
   module TEXT NOT NULL,
   message TEXT NOT NULL,
@@ -438,7 +438,7 @@ CREATE INDEX IF NOT EXISTS idx_system_logs_module ON public.system_logs(module, 
 
 -- API performance metrics
 CREATE TABLE IF NOT EXISTS public.api_metrics (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   endpoint TEXT NOT NULL,
   method TEXT NOT NULL,
   response_time_ms INTEGER NOT NULL,

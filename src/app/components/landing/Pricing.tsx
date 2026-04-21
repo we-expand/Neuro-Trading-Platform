@@ -67,7 +67,7 @@ export const PricingSection = ({ lang }: { lang: Language }) => {
                 <h3 className="text-lg font-semibold leading-8 text-white">{tier.name}</h3>
                 <div className="mt-4 flex items-baseline gap-x-2">
                   <span className="text-3xl font-bold tracking-tight text-white">{tier.price}</span>
-                  {!['Custom', 'Sob Medida', 'A Medida', 'Gratuito', 'R$0'].includes(tier.price) && (
+                  {tier.price !== 'Custom' && tier.price !== 'Sob Medida' && tier.price !== 'A Medida' && tier.price !== 'Gratuito' && (
                     <span className="text-sm font-semibold leading-6 text-slate-400">{t.frequency}</span>
                   )}
                 </div>

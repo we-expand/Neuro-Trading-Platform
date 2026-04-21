@@ -183,7 +183,7 @@ export const MarketProvider = ({ children }: { children: ReactNode }) => {
           status: 'SYNCED'
         }));
       },
-      10000 // Atualizar a cada 10 segundos
+      120000 // Atualizar a cada 2 minutos (OTIMIZADO para economizar quota Edge Functions)
     );
     
     // Cleanup

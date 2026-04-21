@@ -119,10 +119,47 @@ const FALLBACK_DATA: Record<string, MarketData> = {
  */
 async function fetchFromFinnhub(symbol: string): Promise<MarketData | null> {
   try {
-    // Pula Finnhub API porque a key gratuita estourou limite / foi revogada (evita erro 401 no console)
-    throw new Error('Finnhub API key limits reached. Skipping to fallback.');
+    // Mapear símbolos para formato Finnhub
+    const symbolMap: Record<string, string> = {
+      SPX500: '^GSPC',     // S&P 500
+      NAS100: '^IXIC',     // NASDAQ
+      US30: '^DJI',        // Dow Jones
+      XAUUSD: 'GC=F',      // Ouro
+      XAGUSD: 'SI=F',      // Prata
+      EURUSD: 'EUR=X',     // Euro/USD
+      GBPUSD: 'GBP=X',     // Libra/USD
+    };
+
+    const finnhubSymbol = symbolMap[symbol] || symbol;
+    const url = `https://finnhub.io/api/v1/quote?symbol=${finnhubSymbol}&token=${API_KEYS.finnhub}`;
+    
+    console.log(`[Finnhub] 🌐 Buscando ${symbol}...`);
+    
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    
+    const data = await response.json();
+    
+    // Finnhub retorna: c (current), d (change), dp (changePercent), o (open), h (high), l (low)
+    if (data.c && data.c > 0) {
+      const result: MarketData = {
+        value: data.c,
+        change: data.d || 0,
+        changePercent: data.dp || 0,
+        timestamp: new Date(data.t * 1000), // Unix timestamp
+        source: 'Finnhub (Real-Time)',
+        open: data.o,
+        high: data.h,
+        low: data.l,
+      };
+      
+      console.log(`[Finnhub] ✅ ${symbol}: $${result.value.toFixed(2)} (${result.changePercent > 0 ? '+' : ''}${result.changePercent.toFixed(2)}%)`);
+      return result;
+    }
+    
+    throw new Error('Dados inválidos');
   } catch (error) {
-    console.log(`[Finnhub] ⏭️ Pulando API (limite atingido) para ${symbol}`);
+    console.warn(`[Finnhub] ❌ Falha ao buscar ${symbol}:`, error);
     return null;
   }
 }
@@ -180,103 +217,19 @@ async function fetchFromTwelveData(symbol: string): Promise<MarketData | null> {
   }
 }
 
-const YAHOO_SYMBOL_MAP: Record<string, string> = {
-  SPX500: '^GSPC',
-  NAS100: '^IXIC',
-  US30: '^DJI',
-  XAUUSD: 'GC=F',
-  XAGUSD: 'SI=F',
-  EURUSD: 'EURUSD=X',
-  GBPUSD: 'GBPUSD=X',
-  USDJPY: 'JPY=X',
-  USDCAD: 'CAD=X',
-  AUDUSD: 'AUDUSD=X',
-  NZDUSD: 'NZDUSD=X',
-  BTCUSD: 'BTC-USD',
-  ETHUSD: 'ETH-USD',
-};
-
-// Multiple CORS proxies — tried in order until one works
-const CORS_PROXIES = [
-  (u: string) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-  (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-  (u: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-];
-
-async function fetchYahooViaProxy(yfSymbol: string): Promise<any | null> {
-  const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${yfSymbol}?interval=1d&range=2d`;
-
-  for (const makeProxy of CORS_PROXIES) {
-    try {
-      const res = await fetch(makeProxy(targetUrl), { signal: AbortSignal.timeout(6000) });
-      if (!res.ok) continue;
-      const data = await res.json();
-      const result = data?.chart?.result?.[0];
-      if (result?.meta?.regularMarketPrice) return result;
-    } catch {
-      // try next proxy
-    }
-  }
-  return null;
-}
-
 /**
- * 🌐 YAHOO FINANCE API: Dados reais gratuitos (Sem chave API)
- */
-async function fetchFromYahoo(symbol: string): Promise<MarketData | null> {
-  try {
-    const yfSymbol = YAHOO_SYMBOL_MAP[symbol] || symbol;
-    const result = await fetchYahooViaProxy(yfSymbol);
-
-    if (!result) {
-      console.warn(`[YahooFinance] ❌ Todos os proxies falharam para ${symbol}`);
-      return null;
-    }
-
-    const meta = result.meta;
-    const currentPrice = meta.regularMarketPrice;
-    const previousClose = meta.chartPreviousClose || meta.previousClose || currentPrice;
-    const change = currentPrice - previousClose;
-    const changePercent = previousClose ? (change / previousClose) * 100 : 0;
-
-    const marketData: MarketData = {
-      value: currentPrice,
-      change,
-      changePercent,
-      timestamp: new Date(meta.regularMarketTime * 1000),
-      source: 'Yahoo Finance (Real-Time)',
-      open: meta.regularMarketOpen || currentPrice,
-      high: meta.regularMarketDayHigh || currentPrice,
-      low: meta.regularMarketDayLow || currentPrice,
-    };
-
-    console.log(`[YahooFinance] ✅ ${symbol}: $${marketData.value.toFixed(2)} (${marketData.changePercent > 0 ? '+' : ''}${marketData.changePercent.toFixed(2)}%)`);
-    return marketData;
-  } catch (error) {
-    console.warn(`[YahooFinance] ❌ Falha ao buscar ${symbol}:`, error);
-    return null;
-  }
-}
-
-/**
- * � FUNÇÃO PRINCIPAL: Busca dados com fallback inteligente
+ * 🎯 FUNÇÃO PRINCIPAL: Busca dados com fallback inteligente
  * 
  * ESTRATÉGIA:
- * 1. Tenta Yahoo Finance (Livre, mais confiável)
- * 2. Tenta Finnhub (se tiver key válida)
- * 3. Tenta TwelveData (backup)
- * 4. Usa fallback preciso atualizado manualmente
+ * 1. Tenta Finnhub (mais rápido)
+ * 2. Tenta TwelveData (backup)
+ * 3. Usa fallback preciso atualizado manualmente
  */
 export async function fetchMarketData(symbol: string): Promise<MarketData> {
   console.log(`[MarketData] 📊 Buscando dados para ${symbol}...`);
   
   // Tentar APIs em sequência
-  let data = await fetchFromYahoo(symbol);
-  
-  if (!data) {
-    console.log(`[MarketData] 🔄 Yahoo falhou, tentando Finnhub...`);
-    data = await fetchFromFinnhub(symbol);
-  }
+  let data = await fetchFromFinnhub(symbol);
   
   if (!data) {
     console.log(`[MarketData] 🔄 Finnhub falhou, tentando TwelveData...`);

@@ -25,10 +25,10 @@ export class ErrorBoundary extends Component<Props, State> {
   public static getDerivedStateFromError(error: Error): Partial<State> {
     console.error('[ErrorBoundary] 🛡️ Error caught:', error);
     
-    // 🛡️ SUPRESSÃO MÁXIMA: ERROS DO IFRAME DO FIGMA (não propagam para UI do Figma)
+    // 🛡️ SUPRESSÃO MÁXIMA: ERROS DO IFRAME DO FIGMA E OUTROS ERROS NÃO-CRÍTICOS
     const errorStr = String(error.message || error.name || error);
-    const isFigmaError = 
-      error.name === 'IframeMessageAbortError' || 
+    const isFigmaError =
+      error.name === 'IframeMessageAbortError' ||
       errorStr.includes('IframeMessageAbortError') ||
       errorStr.includes('message port was destroyed') ||
       errorStr.includes('Message aborted') ||
@@ -36,10 +36,16 @@ export class ErrorBoundary extends Component<Props, State> {
       errorStr.includes('webpack-artifacts') ||
       errorStr.includes('setupMessageChannel') ||
       errorStr.includes('cleanup');
-    
-    if (isFigmaError) {
+
+    // 🛡️ SUPRESSÃO: Erro de removeChild (não crítico)
+    const isRemoveChildError =
+      errorStr.includes('removeChild') ||
+      errorStr.includes('not a child of this node') ||
+      error.name === 'NotFoundError';
+
+    if (isFigmaError || isRemoveChildError) {
       // ✅ NÃO MOSTRAR ERRO - Apenas logar silenciosamente
-      console.warn('[ErrorBoundary] ℹ️ Suprimindo erro interno do Figma:', errorStr);
+      console.warn('[ErrorBoundary] ℹ️ Suprimindo erro não-crítico:', errorStr);
       // RETORNAR hasError: false = NÃO MOSTRAR NADA
       return { hasError: false };
     }

@@ -1,5 +1,5 @@
-import React, { useRef } from 'react';
-import { Bell, LogOut, ShieldCheck, AlertTriangle, ArrowLeftRight, ImagePlus } from 'lucide-react';
+import React from 'react';
+import { Bell, LogOut, Search, ShieldCheck, AlertTriangle, User, ArrowLeftRight } from 'lucide-react';
 import { useTradingContext } from '../../contexts/TradingContext';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import { BrokerConnectionStatus } from '../BrokerConnectionStatus';
@@ -16,31 +16,6 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ currentView, isAdmin, onLogout, user, onOpenBrokerConfig }) => {
   const { config, setConfig } = useTradingContext();
   const { fullName, profile, avatarUrl } = useUserProfile();
-  const faviconInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFaviconUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
-      if (link) {
-        link.href = dataUrl;
-      } else {
-        const newLink = document.createElement('link');
-        newLink.rel = 'icon';
-        newLink.href = dataUrl;
-        document.head.appendChild(newLink);
-      }
-      toast.success(`Favicon aplicado: ${file.name}`, {
-        description: 'Envie a imagem no chat para eu salvar permanentemente.'
-      });
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
-  };
   const isLive = config.executionMode === 'LIVE';
   const [confirmSwitch, setConfirmSwitch] = React.useState(false);
 
@@ -114,7 +89,11 @@ export const Header: React.FC<HeaderProps> = ({ currentView, isAdmin, onLogout, 
     <header id="app-header" className="min-h-[4rem] h-auto py-2 border-b border-white/5 bg-black/50 backdrop-blur-md px-4 md:px-6 flex flex-wrap md:flex-nowrap items-center justify-between sticky top-0 z-40 gap-y-2">
       {/* Left: Title / Breadcrumbs */}
       <div className="flex items-center gap-4 shrink-0">
-        {/* Execution Mode Badge */}
+        <h1 className="text-lg font-medium text-white tracking-wide">
+          {getViewTitle(currentView)}
+        </h1>
+        
+        {/* Execution Mode Badge - Moved here next to title */}
         <div className={`flex items-center gap-2 px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${
             isLive 
             ? 'bg-red-500/10 border border-red-500/30 text-red-400' 
@@ -141,27 +120,6 @@ export const Header: React.FC<HeaderProps> = ({ currentView, isAdmin, onLogout, 
         {/* 🟢 BROKER CONNECTION STATUS */}
         <BrokerConnectionStatus />
 
-        {/* 🖼️ FAVICON UPLOAD — apenas admin */}
-        {isAdmin && (
-          <>
-            <input
-              ref={faviconInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFaviconUpload}
-            />
-            <button
-              onClick={() => faviconInputRef.current?.click()}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:border-white/20 transition-all text-xs"
-              title="Enviar imagem para favicon"
-            >
-              <ImagePlus className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">Favicon</span>
-            </button>
-          </>
-        )}
-
         {/* Notifications */}
         <button className="relative p-2 text-slate-400 hover:text-white transition-colors rounded-full hover:bg-white/5">
           <Bell className="w-5 h-5" />
@@ -186,7 +144,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, isAdmin, onLogout, 
         <div className="flex items-center gap-3 pl-2 cursor-pointer group relative">
           <div className="text-right hidden sm:block">
             <p className="text-sm font-bold text-white leading-tight">
-              Neural Day Trader
+              {fullName}
             </p>
             <p className="text-[10px] text-slate-500 font-medium leading-tight">
               {profile?.email || user?.email || 'email@exemplo.com'}

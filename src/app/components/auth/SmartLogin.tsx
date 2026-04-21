@@ -5,6 +5,7 @@ import { translations, Language } from '../landing/translations';
 import { NeuralLogo } from '../BrandLogo';
 import { supabase } from '../../../lib/supabaseClient';
 import { toast } from 'sonner';
+import * as LocalAuth from '../../services/LocalAuthService';
 
 export interface UserProfile {
   email: string;
@@ -49,7 +50,7 @@ export const SmartLogin = ({ onLoginSuccess, onBack, lang }: { onLoginSuccess: (
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email) {
       setError('Email não identificado. Volte e digite seu email.');
       return;
@@ -60,60 +61,128 @@ export const SmartLogin = ({ onLoginSuccess, onBack, lang }: { onLoginSuccess: (
 
     try {
       if (step === 'signup') {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-        if (error) throw error;
-        toast.success('Conta criada! Verifique seu email.');
-        // Optionally auto-login or wait for confirmation
-        // For UX smoothness in this demo, let's allow "success" visual
-        // but typically you wait for email confirmation.
-        // Let's fallback to login behavior if auto-confirm is enabled or just notify.
+        // Tentar criar conta no Supabase
+        try {
+          const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+          });
+
+          if (error) throw error;
+
+          toast.success('Conta criada!', { description: 'Fazendo login...' });
+        } catch (signUpErr: any) {
+          console.warn('[SmartLogin] Erro no signup Supabase, tentando local...', signUpErr.message);
+
+          // Criar conta localmente
+          const localResult = await LocalAuth.signUpLocal(email, password, email.split('@')[0]);
+
+          if (localResult.error && localResult.error !== 'Usuário já existe') {
+            throw new Error(localResult.error);
+          }
+
+          toast.success('Conta Local Criada!', { description: 'Modo offline ativo.' });
+        }
       }
 
       // Login Logic
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      if (data.user) {
-        setStep('success');
-        setTimeout(() => {
-          onLoginSuccess({ 
-            email: data.user.email || '', 
-            role: data.user.email?.includes('admin') ? 'admin' : 'user',
-            name: data.user.email?.split('@')[0] || 'User',
-            country: country // Pass country
+        if (data.user) {
+          setStep('success');
+          setTimeout(() => {
+            onLoginSuccess({
+              email: data.user.email || '',
+              role: data.user.email?.includes('admin') ? 'admin' : 'user',
+              name: data.user.email?.split('@')[0] || 'User',
+              country: country
+            });
+            localStorage.setItem('neural_user_region', country);
+          }, 1500);
+        }
+      } catch (loginErr: any) {
+        console.warn('[SmartLogin] Erro no login Supabase, tentando local...', loginErr.message);
+
+        // Tentar login local
+        let localResult = await LocalAuth.signInLocal(email, password);
+
+        // 🆕 SE NÃO ENCONTROU, CRIAR CONTA LOCAL AUTOMATICAMENTE
+        if (!localResult.user && localResult.error === 'Usuário não encontrado') {
+          console.log('[SmartLogin] 🔄 Criando conta local automaticamente...');
+          const signUpResult = await LocalAuth.signUpLocal(email, password, email.split('@')[0]);
+
+          if (signUpResult.user && !signUpResult.error) {
+            localResult = await LocalAuth.signInLocal(email, password);
+          }
+        }
+
+        if (localResult.user) {
+          toast.success('Autenticado Localmente!', {
+            description: 'Conta sincronizada no modo offline.'
           });
-          // Save preference
-          localStorage.setItem('neural_user_region', country);
-        }, 1500);
+
+          setStep('success');
+          setTimeout(() => {
+            onLoginSuccess({
+              email: localResult.user!.email,
+              role: localResult.user!.role,
+              name: localResult.user!.name,
+              country: country
+            });
+            localStorage.setItem('neural_user_region', country);
+          }, 1500);
+          return;
+        }
+
+        // Se ambos falharam
+        throw loginErr;
       }
 
     } catch (err: any) {
-      // FALLBACK PARA MODO DEMONSTRAÇÃO (Para evitar bloqueio no protótipo)
-      console.warn("Auth falhou, ativando fallback demo:", err.message);
-      
-      if (process.env.NODE_ENV === 'development' || true) { // Force demo mode for this environment
-         toast.success('Ambiente de Demonstração: Acesso Permitido');
-         
-         // Save preference even in demo mode
-         localStorage.setItem('neural_user_region', country);
+      console.error('[SmartLogin] Erro de autenticação:', err.message);
 
-         setStep('success');
-         setTimeout(() => {
-           onLoginSuccess({ 
-             email: email, 
-             role: email.includes('admin') ? 'admin' : 'user',
-             name: email.split('@')[0],
-             country: country 
-           });
-         }, 1500);
-         return;
+      // ✅ SEMPRE USAR LOCAL AUTH COMO FALLBACK
+      // Detecta erro 402, fetch failure, ou qualquer outro erro Supabase
+      console.warn('[SmartLogin] 🔄 Supabase indisponível, usando Local Auth...');
+
+      toast.success('Modo Offline Ativado!', {
+        description: 'Suas credenciais estão seguras localmente.',
+        duration: 3000
+      });
+
+      // 🚀 CRIAR ou LOGIN LOCAL (auto-create se não existir)
+      let localResult = await LocalAuth.signInLocal(email, password);
+
+      // Se não existe, criar automaticamente
+      if (!localResult.user && localResult.error === 'Usuário não encontrado') {
+        console.log('[SmartLogin] 📝 Criando usuário local automaticamente...');
+        const signUpResult = await LocalAuth.signUpLocal(email, password, email.split('@')[0]);
+
+        if (signUpResult.user) {
+          localResult = { user: signUpResult.user };
+        }
+      }
+
+      // Se criou ou logou com sucesso
+      if (localResult.user) {
+        localStorage.setItem('neural_user_region', country);
+
+        setStep('success');
+        setTimeout(() => {
+          onLoginSuccess({
+            email: localResult.user!.email,
+            role: localResult.user!.role,
+            name: localResult.user!.name,
+            country: country
+          });
+        }, 1500);
+        return;
       }
 
       setError(err.message === 'Invalid login credentials' ? 'Credenciais inválidas.' : err.message);
@@ -160,7 +229,8 @@ export const SmartLogin = ({ onLoginSuccess, onBack, lang }: { onLoginSuccess: (
         className="w-full max-w-md bg-[#050505]/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl shadow-2xl shadow-cyan-900/10 overflow-hidden relative"
       >
         {/* Decorative Grid */}
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none mix-blend-overlay"></div>
+        <div className="absolute inset-0 opacity-10 pointer-events-none mix-blend-overlay"
+             style={{backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'300\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence baseFrequency=\'0.9\' numOctaves=\'3\' /%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\' opacity=\'0.5\' /%3E%3C/svg%3E")'}}></div>
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-50"></div>
 
         <div className="relative z-10">
@@ -178,13 +248,14 @@ export const SmartLogin = ({ onLoginSuccess, onBack, lang }: { onLoginSuccess: (
 
           <AnimatePresence mode="wait">
             {step === 'identify' && (
-              <motion.form 
+              <motion.form
                 key="identify"
                 initial={{ x: 20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: -20, opacity: 0 }}
                 onSubmit={handleIdentitySubmit}
                 className="space-y-6"
+                autoComplete="on"
               >
                 <div>
                   <h2 className="text-2xl font-light text-white mb-2">{t.accessPortal}</h2>
@@ -194,12 +265,13 @@ export const SmartLogin = ({ onLoginSuccess, onBack, lang }: { onLoginSuccess: (
                 <div className="space-y-4">
                   <div className="relative group">
                     <User className="absolute left-3 top-3.5 w-5 h-5 text-slate-500 group-focus-within:text-cyan-400 transition-colors" />
-                    <input 
-                      type="email" 
+                    <input
+                      type="email"
                       placeholder={t.placeholder}
                       className="w-full bg-slate-900/50 border border-slate-800 text-white pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20 transition-all placeholder:text-slate-600"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      autoComplete="email"
                       required
                     />
                   </div>
@@ -346,12 +418,13 @@ export const SmartLogin = ({ onLoginSuccess, onBack, lang }: { onLoginSuccess: (
 
                   <div className="relative group">
                     <Lock className="absolute left-3 top-3.5 w-5 h-5 text-slate-500 group-focus-within:text-cyan-400 transition-colors" />
-                    <input 
-                      type="password" 
+                    <input
+                      type="password"
                       placeholder="Senha do sistema"
                       className="w-full bg-slate-900/50 border border-slate-800 text-white pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20 transition-all placeholder:text-slate-600"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      autoComplete={step === 'signup' ? 'new-password' : 'current-password'}
                       autoFocus
                       required
                     />

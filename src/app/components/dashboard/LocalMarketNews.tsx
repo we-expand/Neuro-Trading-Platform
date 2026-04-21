@@ -21,7 +21,7 @@ const FEED_URLS: Record<string, string> = {
 };
 
 // ✅ USAR BACKEND (sem CORS)
-const API_BASE = `https://${projectId}.supabase.co/functions/v1/server`;
+const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-1dbacac6`;
 
 export function LocalMarketNews() {
   const [news, setNews] = useState<NewsItem[]>([]);

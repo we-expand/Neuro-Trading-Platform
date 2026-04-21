@@ -30,6 +30,7 @@ import PyramidingExample from '@/app/components/examples/InfinoxExamples';
 import { CompetitiveAnalysis } from '@/app/components/CompetitiveAnalysis';
 import { LandingPage } from '@/app/components/landing/LandingPage';
 import { AuthOverlay } from '@/app/components/auth/AuthOverlay';
+import { LocalAuthTest } from '@/app/components/auth/LocalAuthTest';
 import { MarketTicker } from '@/app/components/MarketTicker';
 import { FloatingAssistantButton } from '@/app/components/FloatingAssistantButton';
 // import { LiveTradingTest } from '@/app/components/LiveTradingTest';
@@ -44,7 +45,6 @@ import { LaunchStrategy } from '@/app/components/LaunchStrategy';
 import { TraderInsights } from '@/app/components/TraderInsights';
 import { AITraderVoice } from '@/app/components/modules/AITraderVoice';
 import { AITradingEngine } from '@/app/components/AITradingEngine';
-import { InvestorDeck } from '@/app/components/investor/InvestorDeck';
 import { Toaster } from 'sonner';
 
 // 🚀 LAZY LOADING - Componentes pesados carregados sob demanda
@@ -130,46 +130,52 @@ if (typeof window !== 'undefined') {
 
 // 🚨 DETECÇÃO AUTOMÁTICA DE CACHE ANTIGO
 if (typeof window !== 'undefined') {
-  const CACHE_VERSION = '3.5.0';
+  const CACHE_VERSION = '4.5.0'; // 🆕 Versão atualizada
   const storedVersion = localStorage.getItem('app-cache-version');
-  
-  // Se a versão for diferente, limpar TUDO e recarregar
+
+  // Se a versão for diferente, limpar TUDO e atualizar versão
+  // ✅ SEM window.location.reload() — previne loops de refresh no iframe do Figma
   if (storedVersion !== CACHE_VERSION) {
     console.log('%c═══════════════════════════════════════════════════════', 'color: #ef4444; font-weight: bold');
-    console.log('%c🔥 CACHE ANTIGO DETECTADO! Limpando...', 'color: #ef4444; font-size: 16px; font-weight: bold');
+    console.log('%c🔥 NOVA VERSÃO DETECTADA (v' + CACHE_VERSION + ')! Limpando cache...', 'color: #ef4444; font-size: 16px; font-weight: bold');
     console.log('%c═══════════════════════════════════════════════════════', 'color: #ef4444; font-weight: bold');
-    
+
     // Limpar localStorage (mas manter credenciais)
     const supabaseSession = localStorage.getItem('sb-bgarakvnuppzkugzptsr-auth-token');
+    const emergencyOffline = localStorage.getItem('neural_emergency_offline');
+
     localStorage.clear();
+
     if (supabaseSession) {
       localStorage.setItem('sb-bgarakvnuppzkugzptsr-auth-token', supabaseSession);
     }
+    if (emergencyOffline) {
+      localStorage.setItem('neural_emergency_offline', emergencyOffline);
+    }
+
     localStorage.setItem('app-cache-version', CACHE_VERSION);
-    
+
     // Limpar sessionStorage
     sessionStorage.clear();
-    
-    // Recarregar página
-    window.location.reload();
+
+    console.log('[APP] ✅ Cache limpo silenciosamente — SEM reload automático para evitar loops no iframe');
   }
-  
+
   console.log('%c═══════════════════════════════════════════════════════', 'color: #f59e0b; font-weight: bold');
-  console.log('%c🔥 NEURAL DAY TRADER PLATFORM v3.5.0', 'color: #06b6d4; font-size: 16px; font-weight: bold');
+  console.log('%c🔥 NEURAL DAY TRADER PLATFORM v' + CACHE_VERSION, 'color: #06b6d4; font-size: 16px; font-weight: bold');
   console.log('%c═══════════════════════════════════════════════════════', 'color: #f59e0b; font-weight: bold');
-  console.log('%c✅ Cache Buster Automático Ativo', 'color: #10b981; font-weight: bold');
+  console.log('%c✅ Cache Buster Automático Ativo (sem reload)', 'color: #10b981; font-weight: bold');
   console.log('%c═══════════════════════════════════════════════════════', 'color: #f59e0b; font-weight: bold');
 }
 
 type Language = 'en' | 'pt' | 'es';
 
-type View = 'dashboard' | 'wallet' | 'funds' | 'assets' | 'chart' | 'ai-trader' | 'ai-engine' | 'performance' | 'settings' | 'system' | 'ai-voice' | 'dev-lab' | 'innovation' | 'strategy' | 'store' | 'partners' | 'prop-challenge' | 'admin' | 'profile' | 'pyramiding' | 'competitive-analysis' | 'compliance-analysis' | 'launch-strategy' | 'trader-insights' | 'quantum-analysis' | 'social' | 'live-trading-test' | 'investor';
+type View = 'dashboard' | 'wallet' | 'funds' | 'assets' | 'chart' | 'ai-trader' | 'ai-engine' | 'performance' | 'settings' | 'system' | 'ai-voice' | 'dev-lab' | 'innovation' | 'strategy' | 'store' | 'partners' | 'prop-challenge' | 'admin' | 'profile' | 'pyramiding' | 'competitive-analysis' | 'compliance-analysis' | 'launch-strategy' | 'trader-insights' | 'quantum-analysis' | 'social' | 'live-trading-test';
 
 function AppContent() {
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [showLanding, setShowLanding] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
-  const [authMode, setAuthMode] = useState<'login'|'register'>('login');
   const [language, setLanguage] = useState<Language>('pt');
   const { user, signOut, mockLogin, loading } = useAuth();
   const { fullName } = useUserProfile();
@@ -189,8 +195,8 @@ function AppContent() {
   const isAdmin = useMemo(() => checkAdminPermissions(user), [user]);
 
   useEffect(() => {
-    if (fullName && fullName !== 'Usuário' && fullName !== 'Trader') {
-      document.title = `${fullName} | Neural Day Trader`;
+    if (fullName && fullName !== 'Usuário') {
+      document.title = fullName;
     } else {
       document.title = 'Neural Day Trader';
     }
@@ -254,7 +260,6 @@ function AppContent() {
       case 'prop-challenge':
         return <PropChallenge />;
       case 'admin':
-        if (!isAdmin) return <Dashboard />;
         return <AdminDashboard onExit={() => setCurrentView('dashboard')} />;
       case 'dev-lab':
         return (
@@ -285,8 +290,6 @@ function AppContent() {
         return <LaunchStrategy />;
       case 'trader-insights':
         return <TraderInsights />;
-      case 'investor':
-        return <InvestorDeck />;
       // case 'live-trading-test':
       //   return <LiveTradingTest />;
       default:
@@ -302,12 +305,6 @@ function AppContent() {
             <div className="w-full h-screen overflow-y-auto">
               <LandingPage 
                 onLoginClick={() => {
-                  setAuthMode('login');
-                  setShowLanding(false);
-                  setShowLogin(true);
-                }}
-                onRegisterClick={() => {
-                  setAuthMode('register');
                   setShowLanding(false);
                   setShowLogin(true);
                 }}
@@ -318,7 +315,6 @@ function AppContent() {
           ) : (
             <div className="flex h-screen overflow-hidden">
               <AuthOverlay
-                initialMode={authMode}
                 onAuthenticated={(userData) => {
                   if (userData?.email && typeof mockLogin === 'function') {
                     mockLogin(userData.email, userData.name);
@@ -344,7 +340,7 @@ function AppContent() {
               user={user}
             />
             
-            <main className={`flex-1 ${currentView === 'chart' ? 'overflow-hidden flex flex-col' : 'overflow-auto'}`}>
+            <main className="flex-1 overflow-auto">
               {renderContent}
             </main>
 
@@ -369,6 +365,9 @@ function AppContent() {
           <UnifiedDataTester />
           {/* <BinanceDirectComparison /> */}
           <DebugToolbar />
+
+          {/* 🧪 DEBUG: LocalAuth Test Component */}
+          {process.env.NODE_ENV === 'development' && <LocalAuthTest />}
         </div>
       )}
     </div>

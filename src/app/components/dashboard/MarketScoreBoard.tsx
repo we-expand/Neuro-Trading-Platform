@@ -200,7 +200,7 @@ export const MarketScoreBoard = () => {
   const [currentTrend, setCurrentTrend] = useState(0);
   const [currentChange, setCurrentChange] = useState(0); // ✅ NOVO: Variação absoluta
   const [marketStatus, setMarketStatus] = useState<'OPEN' | 'CLOSED'>('OPEN');
-  const [dataSource, setDataSource] = useState<string>('Fallback'); // ✅ NOVO: Track data source
+  const [dataSource, setDataSource] = useState<'MetaApi' | 'Binance' | 'Fallback'>('Fallback'); // ✅ NOVO: Track data source
   const [wsUpdateCounter, setWsUpdateCounter] = useState(0); // 🔥 NOVO: Contador de updates WebSocket (para forçar re-render)
   
   // Refs for smooth animation
@@ -323,7 +323,7 @@ export const MarketScoreBoard = () => {
                 
                 console.log(`[DEBUG] MetaApi response:`, {
                     symbol: metaData.symbol,
-                    price: metaData.last || metaData.bid || 0,
+                    price: metaData.price,
                     change: metaData.change,
                     changePercent: metaData.changePercent,
                     source: metaData.source,
@@ -331,7 +331,7 @@ export const MarketScoreBoard = () => {
                 });
                 
                 // ✅ USAR DADOS MESMO SE FALLBACK (evitar simulação Math.sin)
-                targetPriceRef.current = metaData.last || metaData.bid || 0;
+                targetPriceRef.current = metaData.price;
                 let realTrend = metaData.changePercent;
                 
                 // ✅ USAR VARIAÇÃO ABSOLUTA DIRETA DA API (não recalcular!)
@@ -345,7 +345,7 @@ export const MarketScoreBoard = () => {
                 targetTrendRef.current = realTrend;
                 isRealData = true; // ✅ Marcar como real mesmo se fallback (melhor que simulação)
                 
-                console.log(`[MetaApi] ${metaData.isRealData ? '✅' : '⚠️'} ${activeSymbol}: $${(metaData.last || metaData.bid || 0).toFixed(5)} (${realTrend > 0 ? '+' : ''}${realTrend.toFixed(2)}%) | Change: ${metaData.change > 0 ? '+' : ''}${metaData.change.toFixed(5)} [${metaData.source}]`);
+                console.log(`[MetaApi] ${metaData.isRealData ? '✅' : '⚠️'} ${activeSymbol}: $${metaData.price.toFixed(5)} (${realTrend > 0 ? '+' : ''}${realTrend.toFixed(2)}%) | Change: ${metaData.change > 0 ? '+' : ''}${metaData.change.toFixed(5)} [${metaData.source}]`);
                 setDataSource(metaData.source);
             } catch (e: any) {
                 console.error('[MetaApi] ❌ Error:', e.message);
@@ -492,9 +492,9 @@ export const MarketScoreBoard = () => {
     // 🔥 Fetch inicial
     fetchData(); 
     
-    // 📊 Polling para atualização periódica (todos os ativos)
-    const updateInterval = (timeframe === '1m' ? 60000 : // 1 minuto
-                            timeframe === '5m' ? 300000 : // 5 minutos
+    // 📊 Polling para atualização periódica (OTIMIZADO - intervalos longos)
+    const updateInterval = (timeframe === '1m' ? 300000 : // 5 minutos (otimizado)
+                            timeframe === '5m' ? 600000 : // 10 minutos
                             timeframe === '15m' ? 900000 : // 15 minutos
                             3600000); // 1 hora
     

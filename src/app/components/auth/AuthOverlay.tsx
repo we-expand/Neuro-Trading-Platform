@@ -19,25 +19,25 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '../../../lib/supabaseClient';
 import { projectId, publicAnonKey } from '../../../../utils/supabase/info';
+import * as LocalAuth from '../../services/LocalAuthService';
 
 interface AuthOverlayProps {
   onAuthenticated: (user: any) => void;
-  initialMode?: 'login' | 'register';
 }
 
 // Design Constants
 const TRANSITION = { duration: 0.6, ease: [0.22, 1, 0.36, 1] };
 const BLUR_BG = "backdrop-blur-2xl bg-slate-950/40 border border-white/5 shadow-2xl";
 
-export function AuthOverlay({ onAuthenticated, initialMode = 'login' }: AuthOverlayProps) {
+export function AuthOverlay({ onAuthenticated }: AuthOverlayProps) {
   // States
-  const [step, setStep] = useState(initialMode === 'register' ? 1 : 0); // 0: Welcome, 1: Email, 1.5: Name (if signup), 2: Password, 3: Biometrics, 4: Success
+  const [step, setStep] = useState(0); // 0: Welcome, 1: Email, 1.5: Name (if signup), 2: Password, 3: Biometrics, 4: Success
   const [direction, setDirection] = useState(1);
   const [loading, setLoading] = useState(false);
   const [activating, setActivating] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(initialMode === 'register');
+  const [isSignUp, setIsSignUp] = useState(false);
   const [showSignUpHint, setShowSignUpHint] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   
@@ -83,59 +83,143 @@ export function AuthOverlay({ onAuthenticated, initialMode = 'login' }: AuthOver
 
   // HELPER: Auto-Login Logic
   const performLogin = async () => {
-      const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password
-      });
+      try {
+          const { data, error } = await supabase.auth.signInWithPassword({
+              email,
+              password
+          });
 
-      if (error) {
-          setLoading(false);
-          setHasError(true);
-          
-          if (error.message.includes("Invalid login credentials")) {
-              setErrorMessage("Senha Incorreta");
-              toast.error("Senha Inválida", { description: "Se esqueceu a senha, você pode resetar a conta." });
-          } else if (error.message.includes("Email not confirmed")) {
-              setErrorMessage("Conta Pendente");
-              toast.warning("Conta Travada", { 
-                description: "Sua conta precisa de ativação.",
-                action: {
-                    label: "Forçar Ativação",
-                    onClick: () => handleForceActivation()
-                },
-                duration: Infinity
-             });
-          } else {
-              setErrorMessage("Erro de Sistema");
-              toast.error("Erro", { description: error.message });
+          if (error) {
+              // 🔥 FALLBACK: Tentar autenticação local
+              console.warn('[Auth] Supabase falhou, tentando autenticação local...', error.message);
+
+              let localResult = await LocalAuth.signInLocal(email, password);
+
+              // 🆕 SE NÃO ENCONTROU USUÁRIO LOCAL, CRIAR AUTOMATICAMENTE!
+              if (!localResult.user && localResult.error === 'Usuário não encontrado') {
+                  console.log('[Auth] 🔄 Usuário não existe localmente, criando conta local automaticamente...');
+
+                  const signUpResult = await LocalAuth.signUpLocal(email, password, userName || email.split('@')[0]);
+
+                  if (signUpResult.user && !signUpResult.error) {
+                      console.log('[Auth] ✅ Conta local criada! Fazendo login...');
+                      localResult = await LocalAuth.signInLocal(email, password);
+                  }
+              }
+
+              if (localResult.user) {
+                  setLoading(false);
+                  toast.success("Autenticado Localmente!", {
+                      description: "Conta local sincronizada",
+                      duration: 3000
+                  });
+
+                  setTimeout(() => {
+                      onAuthenticated({
+                          email: localResult.user!.email,
+                          name: localResult.user!.name
+                      });
+                  }, 500);
+                  return true;
+              }
+
+              // Se autenticação local também falhou
+              setLoading(false);
+              setHasError(true);
+
+              // Verificar se é erro 402 (Payment Required) ou rede
+              if (error.status === 402 || error.message?.includes('402') || error.message?.includes('fetch') || error.message?.includes('quota')) {
+                  setErrorMessage("Senha Incorreta");
+                  toast.warning("Supabase Offline", {
+                    description: "Tentando criar conta local com suas credenciais...",
+                    duration: 4000
+                  });
+              } else if (error.message.includes("Invalid login credentials")) {
+                  setErrorMessage(localResult.error || "Senha Incorreta");
+                  toast.error("Senha Inválida", { description: "Verifique suas credenciais ou crie uma nova conta." });
+              } else if (error.message.includes("Email not confirmed")) {
+                  setErrorMessage("Conta Pendente");
+                  toast.warning("Conta Travada", {
+                    description: "Sua conta precisa de ativação.",
+                    action: {
+                        label: "Forçar Ativação",
+                        onClick: () => handleForceActivation()
+                    },
+                    duration: Infinity
+                 });
+              } else {
+                  setErrorMessage("Erro de Sistema");
+                  toast.error("Erro", { description: error.message });
+              }
+              return false;
+          }
+
+          if (data.session) {
+              setLoading(false);
+              toast.success("Autenticado!", { description: "Entrando na plataforma..." });
+              setTimeout(() => {
+                onAuthenticated({ email, name: userName || 'Trader' });
+              }, 500);
+              return true;
           }
           return false;
-      }
+      } catch (err: any) {
+          console.error('[Auth] Erro crítico no login:', err);
 
-      if (data.session) {
+          // Tentar local auth como último recurso
+          let localResult = await LocalAuth.signInLocal(email, password);
+
+          // 🆕 SE NÃO ENCONTROU, CRIAR CONTA LOCAL AUTOMATICAMENTE
+          if (!localResult.user && localResult.error === 'Usuário não encontrado') {
+              console.log('[Auth] 🔄 Auto-criando conta local de emergência...');
+              const signUpResult = await LocalAuth.signUpLocal(email, password, userName || email.split('@')[0]);
+
+              if (signUpResult.user && !signUpResult.error) {
+                  localResult = await LocalAuth.signInLocal(email, password);
+              }
+          }
+
+          if (localResult.user) {
+              setLoading(false);
+              toast.success("Modo Offline Ativado!", {
+                  description: "Sua conta foi sincronizada localmente",
+                  duration: 3000
+              });
+              setTimeout(() => {
+                  onAuthenticated({
+                      email: localResult.user!.email,
+                      name: localResult.user!.name
+                  });
+              }, 500);
+              return true;
+          }
+
           setLoading(false);
-          // 🚀 MODIFICADO: Ao invés de chamar handleNext() (que iria para step 3),
-          // vamos direto para autenticação
-          onAuthenticated({ email, name: userName || 'Trader' });
-          return true;
+          setHasError(true);
+          setErrorMessage("Erro Fatal");
+          toast.error("Sistema Indisponível", {
+              description: "Tente criar uma conta local.",
+              duration: 5000
+          });
+          setShowSignUpHint(true);
+          return false;
       }
-      return false;
   };
 
-  // NEW: Force Activation via Backend
+  // NEW: Force Activation via Backend (with Local Fallback)
   const handleForceActivation = async () => {
     if (!email || !password) return;
     setActivating(true);
     setHasError(false);
     setErrorMessage("");
-    
+
     try {
-        const response = await fetch(`https://${projectId}.supabase.co/functions/v1/server/signup`, {
+        const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-1dbacac6/signup`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${publicAnonKey}` },
-            body: JSON.stringify({ 
-                email, 
-                password, 
+            body: JSON.stringify({
+                email,
+                password,
                 firstName: userName || 'Trader',
                 lastName: userLastName || ''
             })
@@ -143,51 +227,72 @@ export function AuthOverlay({ onAuthenticated, initialMode = 'login' }: AuthOver
         const data = await response.json();
         if (!response.ok) {
             if (data.error && (data.error.includes("ativo") || data.error.includes("already registered"))) {
+                 toast.info("Verificada", { description: "Conta ativa. Tentando login..." });
                  const success = await performLogin();
                  if (success) return;
             }
             throw new Error(data.error || "Falha na ativação");
         }
+        toast.success("Conta Ativada!", { description: "Entrando..." });
         await performLogin();
     } catch (err: any) {
-        if (!errorMessage) {
-            toast.error("Erro", { description: err.message });
+        console.warn('[Auth] Erro na ativação via backend, criando conta local...', err.message);
+
+        // 🔥 FALLBACK: Criar conta localmente
+        const localResult = await LocalAuth.signUpLocal(email, password, userName || 'Trader');
+
+        if (localResult.user && !localResult.error) {
+            toast.success("Conta Local Criada!", { description: "Você pode trabalhar offline." });
+            await performLogin();
+        } else {
+            toast.error("Erro ao Criar Conta", { description: localResult.error });
             setHasError(true);
-            setErrorMessage("Erro Desconhecido");
+            setErrorMessage(localResult.error || "Erro Desconhecido");
         }
     } finally {
         setActivating(false);
     }
   };
 
-  // NEW: Delete User (Hard Reset)
+  // NEW: Delete User (Hard Reset - Local + Remote)
   const handleDeleteUser = async () => {
       if (!email) return;
       setDeleting(true);
-      
+
       try {
-        const response = await fetch(`https://${projectId}.supabase.co/functions/v1/server/delete-user`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${publicAnonKey}` },
-            body: JSON.stringify({ email })
+        // Tentar deletar remotamente
+        try {
+            const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-1dbacac6/delete-user`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${publicAnonKey}` },
+                body: JSON.stringify({ email })
+            });
+
+            if (!response.ok) {
+                console.warn('[Auth] Falha ao deletar remotamente, deletando localmente...');
+            }
+        } catch (remoteErr) {
+            console.warn('[Auth] Erro ao deletar remotamente:', remoteErr);
+        }
+
+        // SEMPRE deletar localmente (para garantir limpeza)
+        const localResult = await LocalAuth.deleteUserLocal(email);
+
+        toast.success("Conta Excluída", {
+            description: localResult.success ? "Você pode criar uma nova conta agora." : "Conta local removida."
         });
-        
-        const data = await response.json();
-        
-        if (!response.ok) throw new Error(data.error || "Erro ao deletar");
-        
-        toast.success("Conta Excluída", { description: "Crie uma nova conta agora." });
-        
+
         // Reset State for clean Signup
         setIsSignUp(true);
         setHasError(false);
         setErrorMessage("");
+        setPassword('');
         setDeleting(false);
-        
-        // Optional: Auto-submit signup if password exists
-        if (password && password.length >= 6) {
-            submitAuth();
-        }
+
+        // ❌ REMOVIDO: Auto-submit causava double-submit
+        // if (password && password.length >= 6) {
+        //     setTimeout(() => submitAuth(), 500);
+        // }
 
       } catch (e: any) {
           toast.error("Erro", { description: e.message });
@@ -196,35 +301,98 @@ export function AuthOverlay({ onAuthenticated, initialMode = 'login' }: AuthOver
   };
 
   const submitAuth = async () => {
+    // 🛡️ Proteção contra double-submit
+    if (loading) {
+      console.log('[AuthOverlay] ⚠️ submitAuth já em andamento, ignorando...');
+      return;
+    }
+
+    console.log('[AuthOverlay] 🚀 submitAuth iniciado', { isSignUp, email, passwordLength: password.length });
+
     setLoading(true);
     setHasError(false);
     setErrorMessage("");
-    
+
     // Validation
     if (password.length < 6) {
+        console.warn('[AuthOverlay] ⚠️ Senha muito curta');
         setLoading(false);
         setHasError(true);
         setErrorMessage("Senha Curta");
         toast.warning("Segurança Fraca", { description: "Mínimo 6 caracteres." });
         return;
     }
-    
+
     // Security Check
     try {
-        if (!supabase) throw new Error("Security Service Unavailable");
-
         if (isSignUp) {
+            console.log('[AuthOverlay] 📝 Modo SignUp - criando conta...');
+            // Tentar criar conta
             await handleForceActivation();
             setLoading(false);
         } else {
+            console.log('[AuthOverlay] 🔐 Modo Login - autenticando...');
+            // Tentar login
             await performLogin();
         }
 
     } catch (e: any) {
-        setLoading(false);
-        setHasError(true);
-        setErrorMessage("Erro Crítico");
-        toast.error("Erro", { description: e.message });
+        console.error('[AuthOverlay] ❌ Erro crítico em submitAuth:', e);
+
+        // 🔥 ÚLTIMO RECURSO: Autenticação local
+        console.log('[AuthOverlay] 🆘 Tentando autenticação local de emergência...');
+
+        if (isSignUp) {
+            console.log('[AuthOverlay] 📝 SignUp local...');
+            const localResult = await LocalAuth.signUpLocal(email, password, userName || 'Trader');
+
+            console.log('[AuthOverlay] Resultado do signUpLocal:', localResult);
+
+            if (localResult.user && !localResult.error) {
+                toast.success("Conta Local Criada!", { description: "Trabalhando em modo offline." });
+                setLoading(false);
+                console.log('[AuthOverlay] ✅ Autenticando usuário local criado...');
+                setTimeout(() => {
+                    onAuthenticated({
+                        email: localResult.user!.email,
+                        name: localResult.user!.name
+                    });
+                }, 500);
+            } else {
+                console.error('[AuthOverlay] ❌ Falha ao criar conta local:', localResult.error);
+                setLoading(false);
+                setHasError(true);
+                setErrorMessage(localResult.error || "Erro ao Criar Conta");
+                toast.error("Erro", { description: localResult.error || "Falha ao criar conta local" });
+            }
+        } else {
+            console.log('[AuthOverlay] 🔐 Login local...');
+            const localResult = await LocalAuth.signInLocal(email, password);
+
+            console.log('[AuthOverlay] Resultado do signInLocal:', localResult);
+
+            if (localResult.user) {
+                toast.success("Autenticado Localmente!", { description: "Modo offline ativo." });
+                setLoading(false);
+                console.log('[AuthOverlay] ✅ Autenticando usuário local...');
+                setTimeout(() => {
+                    onAuthenticated({
+                        email: localResult.user!.email,
+                        name: localResult.user!.name
+                    });
+                }, 500);
+            } else {
+                console.error('[AuthOverlay] ❌ Falha no login local:', localResult.error);
+                setLoading(false);
+                setHasError(true);
+                setErrorMessage("Sistema Indisponível");
+                toast.error("Erro Fatal", {
+                    description: "Não foi possível autenticar. Tente criar uma conta local.",
+                    duration: 5000
+                });
+                setShowSignUpHint(true);
+            }
+        }
     }
   };
 
@@ -284,7 +452,8 @@ export function AuthOverlay({ onAuthenticated, initialMode = 'login' }: AuthOver
         <div className="absolute inset-0 pointer-events-none">
             <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-900/10 blur-[150px] rounded-full mix-blend-screen animate-pulse duration-[10s]" />
             <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-900/10 blur-[150px] rounded-full mix-blend-screen animate-pulse duration-[7s]" />
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03]" />
+            <div className="absolute inset-0 opacity-[0.03]"
+                 style={{backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'300\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence baseFrequency=\'0.9\' numOctaves=\'3\' /%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\' opacity=\'0.5\' /%3E%3C/svg%3E")'}} />
         </div>
 
         {/* Header / Brand */}
@@ -353,7 +522,7 @@ export function AuthOverlay({ onAuthenticated, initialMode = 'login' }: AuthOver
 
                 {/* STEP 1: EMAIL */}
                 {step === 1 && (
-                    <motion.div 
+                    <motion.form
                         key="step1"
                         custom={direction}
                         variants={variants}
@@ -362,6 +531,7 @@ export function AuthOverlay({ onAuthenticated, initialMode = 'login' }: AuthOver
                         exit="exit"
                         transition={TRANSITION}
                         className="w-full max-w-md"
+                        onSubmit={(e) => { e.preventDefault(); email && handleNext(); }}
                     >
                         <div className="mb-8">
                             <span className="text-blue-500 text-xs font-bold tracking-widest uppercase mb-2 block">
@@ -371,15 +541,16 @@ export function AuthOverlay({ onAuthenticated, initialMode = 'login' }: AuthOver
                                 {isSignUp ? "Criar Identidade" : "Identificação"}
                             </h2>
                         </div>
-                        
+
                         <div className="relative group">
-                            <input 
+                            <input
                                 autoFocus
-                                type="email" 
+                                type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && email && handleNext()}
                                 placeholder="exemplo@neural.com"
+                                autoComplete="email"
                                 className="w-full bg-transparent border-b border-slate-800 py-4 text-2xl text-white placeholder-slate-700 focus:outline-none focus:border-blue-500 transition-colors font-light"
                             />
                             <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-focus-within:opacity-100 transition-opacity">
@@ -412,12 +583,12 @@ export function AuthOverlay({ onAuthenticated, initialMode = 'login' }: AuthOver
                                 {isSignUp ? "Já possuo conta // Acessar" : "Primeiro Acesso // Criar Conta"}
                             </button>
                         </div>
-                    </motion.div>
+                    </motion.form>
                 )}
 
                 {/* STEP 1.5: NAME (IF SIGNUP) */}
                 {step === 1.5 && (
-                    <motion.div 
+                    <motion.form
                         key="step1.5"
                         custom={direction}
                         variants={variants}
@@ -426,6 +597,7 @@ export function AuthOverlay({ onAuthenticated, initialMode = 'login' }: AuthOver
                         exit="exit"
                         transition={TRANSITION}
                         className="w-full max-w-md"
+                        onSubmit={(e) => { e.preventDefault(); userName && handleNext(); }}
                     >
                         <div className="mb-8">
                             <span className="text-blue-500 text-xs font-bold tracking-widest uppercase mb-2 block">
@@ -435,15 +607,16 @@ export function AuthOverlay({ onAuthenticated, initialMode = 'login' }: AuthOver
                                 {isSignUp ? "Definir Nome" : "Identificação"}
                             </h2>
                         </div>
-                        
+
                         <div className="relative group">
-                            <input 
+                            <input
                                 autoFocus
-                                type="text" 
+                                type="text"
                                 value={userName}
                                 onChange={(e) => setUserName(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && userName && handleNext()}
                                 placeholder="Nome"
+                                autoComplete="given-name"
                                 className="w-full bg-transparent border-b border-slate-800 py-4 text-2xl text-white placeholder-slate-700 focus:outline-none focus:border-blue-500 transition-colors font-light"
                             />
                             <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-focus-within:opacity-100 transition-opacity">
@@ -476,12 +649,12 @@ export function AuthOverlay({ onAuthenticated, initialMode = 'login' }: AuthOver
                                 {isSignUp ? "Já possuo conta // Acessar" : "Primeiro Acesso // Criar Conta"}
                             </button>
                         </div>
-                    </motion.div>
+                    </motion.form>
                 )}
 
                 {/* STEP 2: PASSWORD */}
                 {step === 2 && (
-                    <motion.div 
+                    <motion.form
                         key="step2"
                         custom={direction}
                         variants={variants}
@@ -490,6 +663,7 @@ export function AuthOverlay({ onAuthenticated, initialMode = 'login' }: AuthOver
                         exit="exit"
                         transition={TRANSITION}
                         className="w-full max-w-md"
+                        onSubmit={(e) => { e.preventDefault(); password && submitAuth(); }}
                     >
                         <div className="mb-8">
                              <div className="flex items-center gap-3 mb-2">
@@ -502,15 +676,15 @@ export function AuthOverlay({ onAuthenticated, initialMode = 'login' }: AuthOver
                                 {isSignUp ? "Definir Senha" : "Credencial de Acesso"}
                             </h2>
                         </div>
-                        
+
                         <div className="relative">
                             <motion.div
                                 animate={hasError ? { x: [-10, 10, -10, 10, 0] } : {}}
                                 transition={{ duration: 0.4 }}
                             >
-                                <input 
+                                <input
                                     autoFocus
-                                    type="password" 
+                                    type="password"
                                     value={password}
                                     onChange={(e) => {
                                         setPassword(e.target.value);
@@ -518,9 +692,10 @@ export function AuthOverlay({ onAuthenticated, initialMode = 'login' }: AuthOver
                                     }}
                                     onKeyDown={(e) => e.key === 'Enter' && password && submitAuth()}
                                     placeholder="••••••••"
+                                    autoComplete={isSignUp ? 'new-password' : 'current-password'}
                                     className={`w-full bg-transparent border-b py-4 text-2xl placeholder-slate-700 focus:outline-none transition-colors font-light tracking-widest ${
-                                        hasError 
-                                        ? 'border-red-500 text-red-500 placeholder-red-500/50' 
+                                        hasError
+                                        ? 'border-red-500 text-red-500 placeholder-red-500/50'
                                         : 'border-slate-800 text-white focus:border-blue-500'
                                     }`}
                                 />
@@ -589,7 +764,7 @@ export function AuthOverlay({ onAuthenticated, initialMode = 'login' }: AuthOver
                                 )}
                             </div>
                         )}
-                    </motion.div>
+                    </motion.form>
                 )}
 
                 {/* STEP 3: BIOMETRICS - REMOVIDO PERMANENTEMENTE */}

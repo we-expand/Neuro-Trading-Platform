@@ -7,7 +7,7 @@
 import { projectId, publicAnonKey } from '/utils/supabase/info';
 import { getRealMarketData, isValidPrice, normalizePrice } from './RealMarketDataService';
 
-const API_BASE = `https://${projectId}.supabase.co/functions/v1/server`;
+const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-1dbacac6`;
 
 export interface MetaApiTick {
   symbol: string;
@@ -44,36 +44,43 @@ export interface MarketData {
 
 /**
  * ✅ REAL: Busca dados de mercado com FALLBACK INTELIGENTE
+ * 🚨 MODO OFFLINE: Usa APENAS fallback local (Supabase desabilitado)
  */
 export async function getMarketData(symbol: string): Promise<MarketData> {
-  // 1. Pular a chamada para /market-data e ir direto ao RealMarketDataService.
-  // A rota original em API_BASE dava 404 porque a Cloud Function correspondente não existe no Supabase.
-  
-  // 2. FALLBACK: Usar RealMarketDataService
   try {
+    console.log('[MetaApi] 🔄 Using fallback service for', symbol);
+
+    // 🚨 PULAR SERVIDOR COMPLETAMENTE - Usar fallback direto
+    // Motivo: Quota Supabase excedida (erro 402)
+    throw new Error('Offline mode - using fallback');
+
+  } catch (error: any) {
+    // 2. FALLBACK: Usar RealMarketDataService
     console.log(`[MetaApi] 🔄 Using fallback service for ${symbol}...`);
-    
-    const realData = await getRealMarketData(symbol);
-    
-    return {
-      symbol: realData.symbol,
-      bid: realData.bid || realData.price,
-      ask: realData.ask || realData.price,
-      last: realData.price,
-      high: realData.high || realData.price,
-      low: realData.low || realData.price,
-      volume: realData.volume || 0,
-      change: realData.change || 0,
-      changePercent: realData.changePercent || 0,
-      timestamp: new Date(realData.timestamp).toISOString(),
-      source: realData.source,
-      isRealData: realData.isRealData
-    };
-  } catch (fallbackError: any) {
-    console.error('[MetaApi] ❌ All fallbacks failed:', fallbackError.message);
-    
-    // 3. ÚLTIMO RECURSO: Dados simulados básicos
-    return getDefaultMarketData(symbol);
+
+    try {
+      const realData = await getRealMarketData(symbol);
+
+      return {
+        symbol: realData.symbol,
+        bid: realData.bid || realData.price,
+        ask: realData.ask || realData.price,
+        last: realData.price,
+        high: realData.high || realData.price,
+        low: realData.low || realData.price,
+        volume: realData.volume || 0,
+        change: realData.change || 0,
+        changePercent: realData.changePercent || 0,
+        timestamp: new Date(realData.timestamp).toISOString(),
+        source: realData.source,
+        isRealData: realData.isRealData
+      };
+    } catch (fallbackError: any) {
+      console.error('[MetaApi] ❌ All fallbacks failed:', fallbackError.message);
+
+      // 3. ÚLTIMO RECURSO: Dados simulados básicos
+      return getDefaultMarketData(symbol);
+    }
   }
 }
 

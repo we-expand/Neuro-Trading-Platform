@@ -46,15 +46,22 @@ export function useUserProfile() {
 
   const loadProfile = async () => {
     if (!user?.id) return;
-    
+
+    // 🚨 MODO OFFLINE: Não tentar buscar perfil do servidor
+    // Usar apenas dados locais do user
+    console.log('[useUserProfile] 🔄 Modo offline - usando dados locais');
+    setLoading(false);
+    return;
+
+    /* DESATIVADO - Quota excedida
     try {
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/server/user-profile?userId=${user.id}`,
+        `https://${projectId}.supabase.co/functions/v1/make-server-1dbacac6/user-profile?userId=${user.id}`,
         {
           headers: { 'Authorization': `Bearer ${publicAnonKey}` }
         }
       );
-      
+
       const data = await response.json();
       if (data && data.profile) {
         setProfile(data.profile);
@@ -64,6 +71,7 @@ export function useUserProfile() {
     } finally {
       setLoading(false);
     }
+    */
   };
 
   const getFullName = () => {

@@ -55,8 +55,6 @@ export interface TradeVisual {
   symbol: string;
   side: 'LONG' | 'SHORT';
   amount: number;
-  contracts: number; // number of contracts/lots in this position
-  commission: number; // custo de comissão de entrada (USD)
   price: number;
   currentPrice?: number;
   currentProfit?: number; // Added for Real PnL from MT5
@@ -66,7 +64,7 @@ export interface TradeVisual {
   leverage: number;
   ai_confidence: number;
   timestamp: number;
-  reasoning: string;
+  reasoning: string; 
   hasTakenPartial?: boolean;
   indicators: {
     rsi: number;
@@ -112,7 +110,6 @@ export interface AIConfig {
   timeframe: string; // Timeframe operacional (1m, 5m, 15m, 1H, 4H)
   newsFilter: boolean; // Filtro de notícias econômicas
   dailyLossLimit: number; // Limite de perda diária (%)
-  commissionPerContract: number; // Comissão por contrato por lado (USD) — ex: $2.50
   metaApiToken?: string; // 🔑 Token do MetaApi para integração MT5
 }
 
@@ -245,7 +242,6 @@ const INITIAL_STATE: ApexLogicState = {
     timeframe: '15m', // Timeframe operacional (1m, 5m, 15m, 1H, 4H)
     newsFilter: true, // Filtro de notícias econômicas
     dailyLossLimit: 5, // Limite de perda diária (%)
-    commissionPerContract: 2.50, // $2.50 por contrato por lado (round-trip = $5.00)
     metaApiToken: '', // 🔑 Token do MetaApi para integração MT5
   },
   mt5Credentials: null,
@@ -333,7 +329,6 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
 
   // === MUTEX LOCK (Prevent Race Conditions) ===
   const mutexRef = useRef(false);
-  const isActiveRef = useRef(false); // Espelha isActive para uso em setInterval
 
   // 🔥 PERFORMANCE FIX: Log de inicialização (EXECUTA APENAS UMA VEZ)
   // Movido para DEPOIS de todos os refs para respeitar Rules of Hooks
@@ -403,17 +398,13 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
     maxCandlesRef.current = maxCandlesBeforeForceEntry;
   }, [maxCandlesBeforeForceEntry]);
 
-  useEffect(() => {
-    isActiveRef.current = isActive;
-  }, [isActive]);
-
   // === PERSISTENCE ===
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed: ApexLogicState = JSON.parse(saved);
-        addLog("🛡️ Drawdown atingido: Fechando ordem e aguardando próximo setup..."); // Always start inactive
+        setIsActive(false); // Always start inactive
         setIsPaused(parsed.isPaused || false);
         setActiveOrders(parsed.activeOrders || []);
         setPortfolio(parsed.portfolio || INITIAL_STATE.portfolio);
@@ -527,9 +518,7 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
     setPerformanceMetrics({
       totalTrades: closedTrades.length,
       winRate,
-      totalPnL: totalProfit,
-      avgWin,
-      avgLoss,
+      totalProfit,
       profitFactor: avgLoss > 0 ? avgWin / avgLoss : 0,
       sharpeRatio: 0, // Simplified
       maxDrawdown: portfolio.currentDrawdown,
@@ -577,7 +566,7 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
       if (issues.length > 0 && !isSafeModeRef.current) {
         setIsSafeMode(true);
         setSafeModeReason(issues.join(', '));
-        addLog("🛡️ Drawdown atingido: Fechando ordem e aguardando próximo setup...");
+        setIsActive(false);
         toast.error(`🚨 SAFE MODE ATIVADO: ${issues.join(', ')}`);
       }
     }, 5000);
@@ -767,16 +756,8 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
           
           // 🔄 FALLBACK: Se WebSocket falhou, usar REST API
           if (!priceData) {
-            const { getRealMarketData } = await import('@/app/services/RealMarketDataService');
-            const mktData = await getRealMarketData(selectedSymbol);
-            priceData = {
-              price: mktData.price,
-              changePercent24h: mktData.changePercent || 0,
-              change24h: mktData.change || 0,
-              volume: mktData.volume || 50000,
-              source: mktData.source,
-              timestamp: mktData.timestamp
-            };
+            const { fetchRealPrice } = await import('@/app/utils/realPriceProvider');
+            priceData = await fetchRealPrice(selectedSymbol);
             console.log(`[REST API] 📡 ${selectedSymbol}: Preço obtido via REST (latência ~500ms)`);
           }
           
@@ -974,58 +955,34 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
             sl: sl.toFixed(selectedSymbol.includes('EUR') || selectedSymbol.includes('GBP') ? 5 : 2)
           });
           
-          // 💰 POSITION SIZING — PADRÃO INDUSTRIA (CFD/Forex)
-          // Fórmula: lots = riskAmount / (SL_distance × valor_por_ponto_por_lot)
+          // 💰 CALCULAR TAMANHO DA POSIÇÃO (Position Sizing)
+          // Baseado no capital alocado e risco por trade
           const currentBalance = portfolioRef.current?.balance || 100;
-          const riskAmount = currentBalance * (aiConfig.riskPerTrade / 100); // $100 * 2% = $2
-
-          // Valor por ponto por lote para o ativo
-          const contractSpec = getContractSpec(selectedSymbol);
-          const valuePerPointPerLot = contractSpec.tickValue / contractSpec.tickSize; // ex: gold = 1.0/0.01 = 100
-
-          // SL distance em preço absoluto
-          const slDistancePrice = Math.abs(currentPrice - sl);
-
-          // Calcular lotes pelo risco
-          let calculatedLots = slDistancePrice > 0 && valuePerPointPerLot > 0
-            ? riskAmount / (slDistancePrice * valuePerPointPerLot)
-            : contractSpec.minLotSize;
-
-          // Arredondar para 2 casas decimais e aplicar mínimo/máximo
-          calculatedLots = Math.round(calculatedLots * 100) / 100;
-          const minLots = contractSpec.minLotSize;
-          const maxLots = aiConfig.maxContracts; // maxContracts = max lotes permitido pelo usuário
-          const contractsToUse = Math.min(aiConfig.maxContracts || 1.0, 1.0);
-
-          const finalTradeCapital = contractsToUse * currentPrice * contractSpec.contractSize / 100; // Margem estimada
-
-          // 💸 COMISSÃO DE ENTRADA: deduzida imediatamente do saldo
-          const entryCommission = (aiConfig.commissionPerContract ?? 2.5) * contractsToUse;
-          setPortfolio(prev => ({
-            ...prev,
-            balance: prev.balance - entryCommission,
-            equity: prev.equity - entryCommission,
-          }));
-
+          const allocatedCapital = Math.min(aiConfig.allocatedCapital, currentBalance);
+          const riskPercentage = aiConfig.riskPerTrade / 100; // Ex: 2% = 0.02
+          
+          // Capital para este trade (% do capital alocado)
+          const tradeCapital = allocatedCapital * riskPercentage;
+          
+          // Garantir valor mínimo para evitar P&L zerado
+          const minTradeCapital = 10; // Mínimo $10 por trade
+          const finalTradeCapital = Math.max(tradeCapital, minTradeCapital);
+          
           console.log(`[POSITION SIZING] 💰 ${selectedSymbol}:`, {
-            balance: `$${currentBalance.toFixed(2)}`,
-            riskAmount: `$${riskAmount.toFixed(2)}`,
-            slDistance: slDistancePrice.toFixed(5),
-            valuePerPointPerLot: valuePerPointPerLot.toFixed(2),
-            calculatedLots: calculatedLots.toFixed(4),
-            contractsToUse: contractsToUse.toFixed(2),
-            entryCommission: `$${entryCommission.toFixed(2)}`,
+            currentBalance: `$${currentBalance.toFixed(2)}`,
+            allocatedCapital: `$${allocatedCapital.toFixed(2)}`,
+            riskPerTrade: `${aiConfig.riskPerTrade}%`,
+            calculatedTradeCapital: `$${tradeCapital.toFixed(2)}`,
+            finalTradeCapital: `$${finalTradeCapital.toFixed(2)}`,
+            reason: tradeCapital < minTradeCapital ? `⬆️ Aumentado para mínimo de $${minTradeCapital}` : '✅ Valor adequado'
           });
-          addLog(`📐 Position sizing: ${contractsToUse.toFixed(2)} lotes | Risco: $${riskAmount.toFixed(2)} | Comissão: -$${entryCommission.toFixed(2)}`);
           
           // ✅ CRIAR TRADE PROFISSIONAL
           const newTrade: TradeVisual = {
             id: `trade-${Date.now()}-${Math.random()}`,
             symbol: selectedSymbol,
             side,
-            amount: finalTradeCapital,
-            contracts: contractsToUse,
-            commission: entryCommission, // comissão de saída = mesmo valor (por simplificação)
+            amount: finalTradeCapital, // ✅ CORREÇÃO: Usar capital calculado, não maxContracts!
             price: currentPrice,
             currentPrice: currentPrice,
             tp,
@@ -1071,8 +1028,6 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
   // === UNREALIZED PNL LOOP (Price Updates & P&L Calculation) ===
   useEffect(() => {
     const pnlInterval = setInterval(() => {
-        // Em modo DEMO: se AI estiver desligada, congelar simulação de preços e TP/SL
-        if (!isActiveRef.current && configRef.current.executionMode !== 'LIVE') return;
         if (activeOrders.length === 0) return;
 
         // Reset refs
@@ -1088,76 +1043,68 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
             let totalExposure = 0;
 
             prevOrders.forEach(order => {
-                // Se conectado ao MT5 em modo LIVE, NÃO SIMULAR MUDANÇAS DE PREÇO.
-                // Usar o preço mais recente real que chegou, ou manter o atual.
-                let nextPrice = order.currentPrice || order.price;
-
-                if (configRef.current.executionMode === 'DEMO' || !isConnectedToMT5) {
-                    // Determinar volatilidade baseada no ativo para simulação
-                    let baseVolatility = 0.0001; // 0.01% por segundo (padrão)
-                    
-                    if (order.symbol.includes('BTC') || order.symbol.includes('ETH')) {
-                      baseVolatility = 0.0002; // Crypto: 0.02% por segundo
-                    } else if (order.symbol.includes('US500') || order.symbol.includes('NAS100')) {
-                      baseVolatility = 0.00015; // Índices: 0.015% por segundo
-                    } else if (order.symbol.includes('EUR') || order.symbol.includes('GBP')) {
-                      baseVolatility = 0.00005; // Forex: 0.005% por segundo (muito menor!)
-                    } else if (order.symbol.includes('XAU') || order.symbol.includes('GOLD')) {
-                      baseVolatility = 0.0001; // Ouro: 0.01% por segundo
-                    }
-                    
-                    // Movimento aleatório: -volatilidade a +volatilidade
-                    const priceChange = (Math.random() - 0.5) * 2 * baseVolatility;
-                    nextPrice = nextPrice * (1 + priceChange);
+                // 🆕 CORREÇÃO CRÍTICA: Movimento de preço MUITO MAIS REALISTA
+                // Em vez de ±0.5% por segundo (muito volátil), usar movimentos micro
+                
+                // Determinar volatilidade baseada no ativo
+                let baseVolatility = 0.0001; // 0.01% por segundo (padrão)
+                
+                if (order.symbol.includes('BTC') || order.symbol.includes('ETH')) {
+                  baseVolatility = 0.0002; // Crypto: 0.02% por segundo
+                } else if (order.symbol.includes('US500') || order.symbol.includes('NAS100')) {
+                  baseVolatility = 0.00015; // Índices: 0.015% por segundo
+                } else if (order.symbol.includes('EUR') || order.symbol.includes('GBP')) {
+                  baseVolatility = 0.00005; // Forex: 0.005% por segundo (muito menor!)
+                } else if (order.symbol.includes('XAU') || order.symbol.includes('GOLD')) {
+                  baseVolatility = 0.0001; // Ouro: 0.01% por segundo
+                }
+                
+                // Movimento aleatório: -volatilidade a +volatilidade
+                const priceChange = (Math.random() - 0.5) * 2 * baseVolatility;
+                
+                const currentPrice = order.currentPrice || order.price;
+                const nextPrice = currentPrice * (1 + priceChange);
+                
+                // ✅ LOG DE DEBUG (apenas para primeira iteração)
+                if (!order.hasTakenPartial) {
+                  const distanceToTP = Math.abs(order.tp - currentPrice);
+                  const distanceToSL = Math.abs(currentPrice - order.sl);
+                  console.log(`[PNL LOOP] ${order.symbol} ${order.side}: Preço $${currentPrice.toFixed(2)} | TP: $${order.tp.toFixed(2)} (${distanceToTP.toFixed(2)} de distância) | SL: $${order.sl.toFixed(2)} (${distanceToSL.toFixed(2)} de distância)`);
                 }
 
                 // Calculate P&L
-                let pnl = 0;
+                const pnl = calculatePnLWithLeverage(
+                    order.symbol,
+                    order.price,
+                    nextPrice,
+                    order.side,
+                    order.amount,
+                    order.leverage
+                );
 
-                // Em LIVE com MT5, o MT5 provê o profit real da posição.
-                if (configRef.current.executionMode === 'LIVE' && isConnectedToMT5 && order.currentProfit !== undefined) {
-                   pnl = order.currentProfit;
-                } else {
-                   // ✅ CORRETO: usar contracts (lotes) para P&L realista
-                   pnl = calculateRealisticPnL(
-                       order.symbol,
-                       order.price,
-                       nextPrice,
-                       order.side,
-                       order.contracts ?? 1
-                   );
-                }
+                totalUnrealizedPnL += pnl;
+                totalExposure += order.amount * nextPrice * order.leverage;
 
-                // Exposição notional = contratos × preço × tamanho do contrato
-                const spec = getContractSpec(order.symbol);
-                totalExposure += (order.contracts ?? 1) * nextPrice * spec.contractSize;
-
-                // Check TP/SL apenas se DEMO. No MT5 LIVE, quem fecha é a corretora
-                // e nós sincronizamos as posições abertas/fechadas.
-                const isDemo = configRef.current.executionMode === 'DEMO' || !isConnectedToMT5;
-                const hitTP = isDemo && (order.side === 'LONG' ? nextPrice >= order.tp : nextPrice <= order.tp);
-                const hitSL = isDemo && (order.side === 'LONG' ? nextPrice <= order.sl : nextPrice >= order.sl);
-
-                // Comissão de saída (TP/SL)
-                const exitComm = order.commission ?? 0;
+                // Check TP/SL
+                const hitTP = order.side === 'LONG' ? nextPrice >= order.tp : nextPrice <= order.tp;
+                const hitSL = order.side === 'LONG' ? nextPrice <= order.sl : nextPrice >= order.sl;
 
                 if (hitTP) {
-                    const netPnl = pnl - exitComm;
-                    realizedPnL += netPnl;
-                    logsToAdd.push(`🎯 ALVO: ${order.symbol} P&L bruto +$${pnl.toFixed(2)} | comissão -$${exitComm.toFixed(2)} | líquido ${netPnl >= 0 ? '+' : ''}$${netPnl.toFixed(2)}`);
-                    setOrderHistory(prev => [...prev, { ...order, currentPrice: nextPrice, currentProfit: netPnl, closedAt: Date.now() }]);
+                    realizedPnL += pnl;
+                    logsToAdd.push(`🎯 ALVO ATINGIDO: ${order.symbol} +$${pnl.toFixed(2)}`);
+                    // Close position
+                    setOrderHistory(prev => [...prev, { ...order, currentPrice: nextPrice, currentProfit: pnl, closedAt: Date.now() }]);
                 } else if (hitSL) {
-                    const netPnl = pnl - exitComm;
-                    realizedPnL += netPnl;
-                    logsToAdd.push(`🛡️ STOP: ${order.symbol} P&L bruto ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} | comissão -$${exitComm.toFixed(2)} | líquido ${netPnl >= 0 ? '+' : ''}$${netPnl.toFixed(2)}`);
-                    setOrderHistory(prev => [...prev, { ...order, currentPrice: nextPrice, currentProfit: netPnl, closedAt: Date.now() }]);
+                    realizedPnL += pnl;
+                    logsToAdd.push(`🛡️ STOP ATINGIDO: ${order.symbol} ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}`);
+                    // Close position
+                    setOrderHistory(prev => [...prev, { ...order, currentPrice: nextPrice, currentProfit: pnl, closedAt: Date.now() }]);
                 } else {
-                    // Posição ainda aberta: soma ao unrealized P&L
-                    totalUnrealizedPnL += pnl;
+                    // Keep position open WITH UPDATED PROFIT
                     nextActiveOrders.push({
                         ...order,
                         currentPrice: nextPrice,
-                        currentProfit: pnl,
+                        currentProfit: pnl, // ✅ CRITICAL: Update profit for UI display
                     });
                 }
             });
@@ -1174,37 +1121,25 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
             setRecentLogs(prev => [...pnlLogsRef.current, ...prev].slice(0, 50));
         }
 
-        // Update portfolio after setState SOMENTE SE DEMO
-        if (configRef.current.executionMode === 'DEMO' || !isConnectedToMT5) {
-            setPortfolio(prev => {
-               const { realizedPnL, totalUnrealizedPnL, totalExposure } = pnlLoopRef.current;
-               const newBalance = prev.balance + realizedPnL;
-               const newEquity = newBalance + totalUnrealizedPnL;
-               const drawdown = newEquity < newBalance ? ((newBalance - newEquity) / newBalance) * 100 : 0;
+        // Update portfolio after setState
+        setPortfolio(prev => {
+           const { realizedPnL, totalUnrealizedPnL, totalExposure } = pnlLoopRef.current;
+           const newBalance = prev.balance + realizedPnL;
+           const newEquity = newBalance + totalUnrealizedPnL;
+           const drawdown = newEquity < newBalance ? ((newBalance - newEquity) / newBalance) * 100 : 0;
 
-               return {
-                  ...prev,
-                  balance: newBalance,
-                  equity: newEquity,
-                  currentDrawdown: Math.max(drawdown, prev.currentDrawdown),
-                  openPositionsValue: totalExposure,
-               };
-            });
-        } else {
-            // Em MODO LIVE, apenas atualizar o drawdown baseando-se no equity/balance reais
-            setPortfolio(prev => {
-               const drawdown = prev.equity < prev.balance ? ((prev.balance - prev.equity) / prev.balance) * 100 : 0;
-               return {
-                  ...prev,
-                  currentDrawdown: Math.max(drawdown, prev.currentDrawdown),
-                  openPositionsValue: pnlLoopRef.current.totalExposure,
-               };
-            });
-        }
+           return {
+              ...prev,
+              balance: newBalance,
+              equity: newEquity,
+              currentDrawdown: Math.max(drawdown, prev.currentDrawdown),
+              openPositionsValue: totalExposure,
+           };
+        });
     }, 1000); // Update every 1 second
 
     return () => clearInterval(pnlInterval);
-  }, [activeOrders.length, isConnectedToMT5]);
+  }, [activeOrders.length]);
 
   // === START/STOP/PAUSE ===
   const startLogic = useCallback(() => {
@@ -1233,18 +1168,17 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
 
       closingOrders.forEach(order => {
         const currentPrice = order.currentPrice || order.price;
-        const tradePnL = calculateRealisticPnL(
+        const tradePnL = calculatePnLWithLeverage(
           order.symbol,
           order.price,
           currentPrice,
           order.side,
-          order.contracts ?? 1
+          order.amount,
+          order.leverage
         );
-        // Descontar comissão de saída
-        const exitCommission = (order.commission ?? 0);
-        totalRealizedPnL += tradePnL - exitCommission;
-
-        console.log(`[FORCE CLOSE] 🚨 Fechando ${order.symbol} ${order.side}: P&L = $${tradePnL.toFixed(2)} | Comissão saída: -$${exitCommission.toFixed(2)}`);
+        totalRealizedPnL += tradePnL;
+        
+        console.log(`[FORCE CLOSE] 🚨 Fechando ${order.symbol} ${order.side}: P&L = $${tradePnL.toFixed(2)}`);
       });
 
       setPortfolio(prev => ({
@@ -1254,15 +1188,16 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
         openPositionsValue: 0,
       }));
 
-      setOrderHistory(prev => [...prev, ...closingOrders.map(o => ({
-        ...o,
+      setOrderHistory(prev => [...prev, ...closingOrders.map(o => ({ 
+        ...o, 
         currentPrice: o.currentPrice || o.price,
-        currentProfit: calculateRealisticPnL(
+        currentProfit: calculatePnLWithLeverage(
           o.symbol,
           o.price,
           o.currentPrice || o.price,
           o.side,
-          o.contracts ?? 1
+          o.amount,
+          o.leverage
         ),
         closedAt: Date.now() 
       }))]);
@@ -1275,7 +1210,7 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
       addLog('🛑 Sistema APEX Parado');
     }
     
-    addLog("🛡️ Drawdown atingido: Fechando ordem e aguardando próximo setup...");
+    setIsActive(false);
     setIsPaused(false);
   }, [activeOrders, addLog]);
 
@@ -1291,7 +1226,7 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
 
   // === RESET ===
   const resetLogic = useCallback(() => {
-    addLog("🛡️ Drawdown atingido: Fechando ordem e aguardando próximo setup...");
+    setIsActive(false);
     setIsPaused(false);
     setActiveOrders([]);
     setOrderHistory([]); // ✅ Limpa histórico de trades
@@ -1323,15 +1258,15 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
 
     closingOrders.forEach(order => {
       const currentPrice = order.currentPrice || order.price;
-      const tradePnL = calculateRealisticPnL(
+      const tradePnL = calculatePnLWithLeverage(
         order.symbol,
         order.price,
         currentPrice,
         order.side,
-        order.contracts ?? 1
+        order.amount,
+        order.leverage
       );
-      const exitCommission = order.commission ?? 0;
-      totalRealizedPnL += tradePnL - exitCommission;
+      totalRealizedPnL += tradePnL;
     });
 
     setPortfolio(prev => ({
@@ -1492,7 +1427,7 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
         ...prev,
         balance: data.balance,
         equity: data.equity,
-        initialBalance: prev.initialBalance === 100 ? data.balance : (prev.initialBalance || data.balance), 
+        initialBalance: prev.initialBalance || data.balance, // Manter initialBalance original se existir
       };
       console.log('[updatePortfolioFromMT5] ✅ Portfolio ATUALIZADO:', updated);
       return updated;
@@ -1524,8 +1459,6 @@ export function useApexLogic(initialMarketContext?: MarketContext) {
         symbol: pos.symbol,
         side,
         amount: pos.volume * 100, // Volume em lotes convertido para capital estimado
-        contracts: pos.volume,
-        commission: 0, // MT5: comissão já deduzida pelo broker
         price: pos.openPrice,
         currentPrice: pos.currentPrice,
         currentProfit: profit,

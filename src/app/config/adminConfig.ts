@@ -7,7 +7,9 @@
  */
 
 export const ADMIN_EMAILS = [
-  'clbrcouto@gmail.com',
+  'seu-email@exemplo.com',  // 👈 SUBSTITUA pelo seu email real
+  // Adicione mais emails de admins aqui:
+  // 'outro-admin@exemplo.com',
 ];
 
 /**

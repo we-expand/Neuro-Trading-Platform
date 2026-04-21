@@ -1,11 +1,3 @@
-export interface HourlyAnalysisData {
-  symbol: string;
-  currentPrice: number;
-  trend: 'bullish' | 'bearish' | 'sideways';
-  strength: number;
-  volatility: number;
-}
-
 /**
  * Gera uma análise completa por voz da próxima hora
  */

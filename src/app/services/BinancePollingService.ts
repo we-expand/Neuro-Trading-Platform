@@ -1,13 +1,15 @@
 /**
  * 🔄 BINANCE POLLING SERVICE
- * 
+ *
  * Fallback quando WebSocket não funciona (CSP/CORS do Figma Make)
- * Atualiza preços via REST API a cada 1 segundo
- * 
- * 🆕 USA PROXY DO BACKEND para contornar CORS!
+ * Atualiza preços via REST API a cada 120 segundos
+ *
+ * 🆕 USA PROXY DO BACKEND ou DIRECT BINANCE API (fallback automático)
  */
 
 import { debugLog, debugError } from '@/app/config/debug';
+import { getApiUrl, API_ENDPOINTS } from '/utils/api/config'; // 🆕 API centralizada
+import { fetchDirectBinance } from './DirectBinanceService'; // 🚀 Fallback direto Binance
 
 export interface BinanceTickerData {
   symbol: string;
@@ -28,9 +30,7 @@ interface PollingSubscription {
 
 class BinancePollingService {
   private subscriptions: Map<string, PollingSubscription> = new Map();
-  private readonly POLL_INTERVAL = 1000; // 1 segundo
-  // 🔥 MUDADO: Restaurado para a API direta da Binance (o app agora roda na Vercel, não tem problema de CORS)
-  private readonly API_BASE_URL = `https://api.binance.com/api/v3`;
+  private readonly POLL_INTERVAL = 120000; // 120 segundos (2 minutos) - OTIMIZADO para economizar quota
 
   /**
    * Subscreve a um símbolo e recebe atualizações via polling
@@ -124,55 +124,62 @@ class BinancePollingService {
     const sub = this.subscriptions.get(symbol);
     if (!sub) return;
 
+    let tickerData: BinanceTickerData | null = null;
+
     try {
-      // 🚫 EVITAR ERRO DE CORS / 400: Binance não suporta S&P500, Ouro ou Forex.
-      // Se tentarmos buscar SPX500USDT, a Binance vai dar 400 e bloquear por CORS.
-      const nonCryptoPrefixes = ['SPX', 'US', 'NAS', 'UK', 'DE', 'JPN', 'HKG', 'AUS', 'XAU', 'XAG', 'XPT', 'XPD', 'UKO', 'USO', 'NGA', 'EUR', 'GBP', 'AUD', 'NZD', 'CAD', 'CHF', 'JPY'];
-      const isNonCrypto = nonCryptoPrefixes.some(prefix => symbol.startsWith(prefix));
-      
-      if (isNonCrypto) {
-        // Interrompe o polling desse ativo na Binance e não faz fetch
-        this.stopPolling(symbol);
-        return;
+      // 🔥 TENTATIVA 1: Busca via API (Vercel ou Supabase)
+      const apiUrl = getApiUrl(API_ENDPOINTS.binance(symbol));
+      const response = await fetch(apiUrl, {
+        signal: AbortSignal.timeout(5000) // Timeout de 5 segundos
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        tickerData = {
+          symbol: data.symbol,
+          price: parseFloat(data.lastPrice || data.price),
+          change: parseFloat(data.priceChange || data.change),
+          changePercent: parseFloat(data.priceChangePercent || data.changePercent),
+          timestamp: Date.now()
+        };
+
+        debugLog('MARKET_DATA', `[BinancePolling] 📊 Dados via API:`, {
+          symbol: tickerData.symbol,
+          price: tickerData.price.toFixed(2)
+        });
+      } else {
+        throw new Error(`HTTP ${response.status}`);
       }
 
-      // � Busca ticker 24h via API direta
-      const response = await fetch(
-        `${this.API_BASE_URL}/ticker/24hr?symbol=${symbol}`
-      );
+    } catch (apiError) {
+      // 🚀 FALLBACK: Busca DIRETA da Binance (sem proxy)
+      debugLog('MARKET_DATA', `[BinancePolling] ⚠️ API falhou, tentando Binance direta...`);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      try {
+        tickerData = await fetchDirectBinance(symbol);
+
+        if (tickerData) {
+          debugLog('MARKET_DATA', `[BinancePolling] ✅ Dados via Binance direta:`, {
+            symbol: tickerData.symbol,
+            price: tickerData.price.toFixed(2)
+          });
+        }
+      } catch (binanceError) {
+        debugError(`[BinancePolling] ❌ Binance direta também falhou:`, binanceError);
       }
+    }
 
-      const data = await response.json();
-
-      // Converte para formato padronizado
-      const tickerData: BinanceTickerData = {
-        symbol: data.symbol,
-        price: parseFloat(data.lastPrice),
-        change: parseFloat(data.priceChange),
-        changePercent: parseFloat(data.priceChangePercent),
-        timestamp: Date.now()
-      };
-
+    // Se conseguiu dados (de qualquer fonte), processa
+    if (tickerData) {
       // Atualiza cache
       sub.lastData = tickerData;
-
-      debugLog('MARKET_DATA', `[BinancePolling] 📊 Dados recebidos:`, {
-        symbol: tickerData.symbol,
-        price: tickerData.price.toFixed(2),
-        change: tickerData.change.toFixed(2),
-        changePercent: tickerData.changePercent.toFixed(2) + '%',
-        callbacks: sub.callbacks.size
-      });
 
       // Notifica todos os callbacks
       let callbacksExecuted = 0;
       sub.callbacks.forEach(callback => {
         try {
-          callback(tickerData);
+          callback(tickerData!);
           callbacksExecuted++;
         } catch (error) {
           debugError(`[BinancePolling] ❌ Erro no callback:`, error);
@@ -180,9 +187,8 @@ class BinancePollingService {
       });
 
       debugLog('MARKET_DATA', `[BinancePolling] ✅ Callbacks executados: ${callbacksExecuted}/${sub.callbacks.size}`);
-
-    } catch (error) {
-      debugError(`[BinancePolling] ❌ Erro ao buscar dados:`, error);
+    } else {
+      debugError(`[BinancePolling] ❌ Falha total ao buscar ${symbol}`);
     }
   }
 

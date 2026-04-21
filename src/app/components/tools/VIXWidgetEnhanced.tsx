@@ -68,16 +68,21 @@ export function VIXWidgetEnhanced() {
   const fetchAllSources = async () => {
     try {
       console.log('═══════════════════════════════════════════════════════');
-      console.log('🔥 [VIX ENHANCED] === BUSCANDO TODAS AS FONTES ===');
+      console.log('🔥 [VIX ENHANCED] === MODO OFFLINE - USANDO FALLBACK ===');
       console.log('═══════════════════════════════════════════════════════');
 
+      // 🚨 MODO OFFLINE: Supabase desabilitado (quota excedida)
+      const backendData = null; // Forçar fallback
+
+      /* DESATIVADO - Quota excedida
       // 🔥 USAR APENAS BACKEND - ZERO CHAMADAS CORS DIRETAS!
-      const backendData = await fetch(`https://${projectId}.supabase.co/functions/v1/server/vix`, {
+      const backendData = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-1dbacac6/vix`, {
         headers: {
           'Authorization': `Bearer ${publicAnonKey}`,
           'Content-Type': 'application/json'
         }
       }).then(r => r.ok ? r.json() : null).catch(() => null);
+      */
 
       console.log('[VIX ENHANCED] 📊 Resultado backend:', backendData);
 

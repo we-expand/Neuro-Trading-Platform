@@ -15,6 +15,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { supabase, isSupabaseActive } from '@/lib/supabaseClient';
 import { RealtimeChannel } from '@supabase/supabase-js';
+import { isEmergencyOfflineMode } from '@/app/services/EmergencyOfflineMode';
 
 // ============================================================================
 // TYPES
@@ -259,7 +260,22 @@ export const useSupabaseRealtimeTurbo = (
   assets: string[] = [],
   config: Partial<OptimizationConfig> = {}
 ) => {
-  const finalConfig = { ...DEFAULT_CONFIG, ...config };
+  // 🔥 CRÍTICO: Memoizar finalConfig para evitar loop infinito
+  // Sem useMemo, um novo objeto é criado a cada render, disparando todos os useEffects
+  const finalConfig = useMemo(() => ({ ...DEFAULT_CONFIG, ...config }), [
+    // Listar apenas as propriedades de config que realmente importam
+    config.eventsPerSecond,
+    config.enableDeltaCompression,
+    config.enableBatching,
+    config.batchWindowMs,
+    config.enableIndexedDB,
+    config.cacheMaxAge,
+    config.enablePredictiveLoad,
+    config.enableWebWorker,
+    config.enableThrottling,
+    config.throttleMs,
+    config.broadcastOnly,
+  ]);
 
   const [prices, setPrices] = useState<Record<string, AssetPrice>>({});
   const [liquidityEvents, setLiquidityEvents] = useState<LiquidityEvent[]>([]);
@@ -440,8 +456,8 @@ export const useSupabaseRealtimeTurbo = (
 
   // 🎧 SUBSCRIBE TO REALTIME (with max eventsPerSecond)
   useEffect(() => {
-    if (!isSupabaseActive || !supabase) {
-      console.log('[REALTIME_TURBO] ⚠️ Supabase not active');
+    if (!isSupabaseActive || !supabase || isEmergencyOfflineMode()) {
+      console.log('[REALTIME_TURBO] ⚠️ Supabase not active or offline mode enabled');
       return;
     }
 

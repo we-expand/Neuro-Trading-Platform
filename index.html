@@ -12,14 +12,14 @@
         const observer = new MutationObserver((mutations) => {
           mutations.forEach((mutation) => {
             mutation.addedNodes.forEach((node) => {
-              if (node && node.nodeType === 1) { // Element node
-                const text = typeof node.textContent === 'string' ? node.textContent : '';
-                const html = typeof node.innerHTML === 'string' ? node.innerHTML : '';
+              if (node.nodeType === 1) { // Element node
+                const text = node.textContent || '';
+                const html = node.innerHTML || '';
                 
-                if ((text && text.includes('IframeMessageAbortError')) || 
-                    (text && text.includes('message port was destroyed')) ||
-                    (html && html.includes('IframeMessageAbortError')) ||
-                    (html && html.includes('message port was destroyed'))) {
+                if (text.includes('IframeMessageAbortError') || 
+                    text.includes('message port was destroyed') ||
+                    html.includes('IframeMessageAbortError') ||
+                    html.includes('message port was destroyed')) {
                   // REMOVER IMEDIATAMENTE
                   console.log('[PROTEÇÃO] Removendo elemento de erro do Figma');
                   node.remove();
@@ -60,27 +60,6 @@
       // Executar ANTES de tudo - bloquear erros do Figma na raiz
       (function() {
         'use strict';
-
-        // 🛡️ NOVO: Monkey patch para prevenir NotFoundError (Google Translate/Extensões)
-        if (typeof Node !== 'undefined' && Node.prototype) {
-          const originalRemoveChild = Node.prototype.removeChild;
-          Node.prototype.removeChild = function(child) {
-            if (child && child.parentNode !== this) {
-              console.warn('[PROTEÇÃO] Tentativa de removeChild ignorada (Node não é filho). Evitando crash no React devido a extensões.');
-              return child;
-            }
-            return originalRemoveChild.call(this, child);
-          };
-
-          const originalInsertBefore = Node.prototype.insertBefore;
-          Node.prototype.insertBefore = function(newNode, referenceNode) {
-            if (referenceNode && referenceNode.parentNode !== this) {
-              console.warn('[PROTEÇÃO] Tentativa de insertBefore ajustada (Referência não é filho). Evitando crash no React.');
-              referenceNode = null;
-            }
-            return originalInsertBefore.call(this, newNode, referenceNode);
-          };
-        }
         
         // Sobrescrever Error constructor para detectar IframeMessageAbortError
         const OriginalError = window.Error;
@@ -162,7 +141,7 @@
             if (arg.filename) return arg.filename;
             try { return String(arg); } catch(e) { return ''; }
           }).join(' ');
-          return typeof str === 'string' && BLOCK.some(pattern => str.includes(pattern));
+          return BLOCK.some(pattern => str.includes(pattern));
         }
         const _err = console.error.bind(console);
         const _warn = console.warn.bind(console);
@@ -232,8 +211,7 @@
     
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="google" content="notranslate" />
-    <title>Neural Day Trader</title>
+    <title>Trade Hub</title>
   </head>
   <body>
     <div id="root"></div>

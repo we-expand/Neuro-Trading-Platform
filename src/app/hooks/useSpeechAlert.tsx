@@ -119,7 +119,7 @@ export function useSpeechAlert(options: SpeechAlertOptions = {}) {
 
         // 🚀 CHAMAR API DO SERVIDOR
         const response = await fetch(
-          `https://${projectId}.supabase.co/functions/v1/server/tts/synthesize`,
+          `https://${projectId}.supabase.co/functions/v1/make-server-1dbacac6/tts/synthesize`,
           {
             method: 'POST',
             headers: {
@@ -135,18 +135,22 @@ export function useSpeechAlert(options: SpeechAlertOptions = {}) {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          console.warn('[TTS] ⚠️ API Google falhou, usando fallback do browser:', response.status, errorData);
-          speakWithBrowser(textToSpeak, volume);
+          console.error('[TTS] ❌ Erro na API:', response.status, errorData);
+          
+          // Se API falhar, mostrar mensagem ao usuário
+          if (response.status === 500 && errorData.error?.includes('GOOGLE_TTS_API_KEY')) {
+            console.error('[TTS] ⚠️ API Key do Google Cloud TTS não configurada!');
+          }
+          
           isSpeakingRef.current = false;
           resolve();
           return;
         }
 
         const data = await response.json();
-
+        
         if (!data.audioContent) {
-          console.warn('[TTS] ⚠️ Sem audioContent, usando fallback do browser');
-          speakWithBrowser(textToSpeak, volume);
+          console.error('[TTS] ❌ Resposta sem audioContent');
           isSpeakingRef.current = false;
           resolve();
           return;
@@ -195,22 +199,6 @@ export function useSpeechAlert(options: SpeechAlertOptions = {}) {
     voiceEnabled,
     toggleVoiceEnabled
   };
-}
-
-// 🎯 FALLBACK: Browser Web Speech API quando Google TTS não está disponível
-function speakWithBrowser(text: string, volume: number = 1.0): void {
-  if (!window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'pt-BR';
-  utterance.volume = volume;
-  utterance.rate = 0.9;
-  utterance.pitch = 1.0;
-  // Tentar selecionar voz pt-BR se disponível
-  const voices = window.speechSynthesis.getVoices();
-  const ptVoice = voices.find(v => v.lang.startsWith('pt-BR') || v.lang.startsWith('pt_BR'));
-  if (ptVoice) utterance.voice = ptVoice;
-  window.speechSynthesis.speak(utterance);
 }
 
 // 🎯 HELPER: Converter Base64 para Blob

@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import logoImage from 'figma:asset/50830eefd6820723067a490f23b87e2ad62798ed.png';
 
 /**
  * Hook para atualizar o favicon dinamicamente com o logo Trade Hub
@@ -6,7 +7,7 @@ import { useEffect } from 'react';
 export function useFavicon() {
   useEffect(() => {
     // Atualizar o título
-    document.title = 'Neural Day Trader';
+    document.title = 'Trade Hub';
     
     // Encontrar ou criar o elemento favicon
     let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
@@ -18,7 +19,7 @@ export function useFavicon() {
     }
     
     // Atualizar o href com a imagem do logo
-    link.href = '/favicon.ico';
+    link.href = logoImage;
     
     console.log('[Favicon] ✅ Logo Trade Hub configurado');
   }, []);

@@ -53,7 +53,7 @@ export const MT5ConfigPanel = ({ isOpen, onClose }: Props) => {
     const loadToken = async () => {
       if (user?.id && !metaApiToken) {
         try {
-          const response = await fetch(`https://${projectId}.supabase.co/functions/v1/server/mt5-token/load?userId=${user.id}`, {
+          const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-1dbacac6/mt5-token/load?userId=${user.id}`, {
             headers: {
               'Authorization': `Bearer ${publicAnonKey}`
             }
@@ -179,7 +179,7 @@ export const MT5ConfigPanel = ({ isOpen, onClose }: Props) => {
         // NOVO: Salvar token MT5 no backend para persistência permanente
         if (mode === 'LIVE' && metaApiToken && user?.id) {
             try {
-                await fetch(`https://${projectId}.supabase.co/functions/v1/server/mt5-token/save`, {
+                await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-1dbacac6/mt5-token/save`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
