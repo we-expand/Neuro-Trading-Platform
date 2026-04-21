@@ -8,10 +8,10 @@ export default defineConfig({
   resolve: { alias: { '@': path.resolve(__dirname, './src') } },
   build: {
     minify: 'terser',
-    cssCodeSplit: false, // Força o CSS num arquivo só para não sumir o layout
+    cssCodeSplit: false,
     rollupOptions: {
       output: {
-        manualChunks: undefined // Impede a separação que causava o erro 't'
+        manualChunks: undefined
       }
     }
   }
