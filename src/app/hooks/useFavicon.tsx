@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import logoImage from 'figma:asset/50830eefd6820723067a490f23b87e2ad62798ed.png';
+const logoImage = "";
 
 /**
  * Hook para atualizar o favicon dinamicamente com o logo Trade Hub
