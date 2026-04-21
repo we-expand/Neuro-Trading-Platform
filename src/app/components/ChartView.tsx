@@ -1,4 +1,5 @@
 // @ts-nocheck
+// @ts-nocheck
 import React, { useEffect, useRef, useState, lazy, Suspense } from 'react';
 import { init, dispose, getSupportedOverlays, registerOverlay, registerYAxis } from 'klinecharts';
 import type { KLineData, OverlayTemplate, AxisTemplate } from 'klinecharts';

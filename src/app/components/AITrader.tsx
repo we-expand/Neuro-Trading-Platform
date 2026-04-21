@@ -1,4 +1,5 @@
 // @ts-nocheck
+// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import { Bot, Brain, Play, Pause, Settings, TrendingUp, AlertCircle, CheckCircle, CheckCircle2, Activity, Terminal, ShieldAlert, Gauge, Sliders, Target, Crosshair, Zap, Briefcase, Lock, BrainCircuit, X, Save, RefreshCw, RotateCcw, FolderOpen, Clock, Mic } from 'lucide-react';
 import { useTradingContext } from '../contexts/TradingContext';
@@ -1870,4 +1871,3 @@ export function AITrader({ compact = false, onNavigate }: { compact?: boolean; o
   );
 }
 
-export default AITrader;

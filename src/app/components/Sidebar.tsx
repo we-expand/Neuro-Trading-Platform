@@ -1,5 +1,7 @@
 const logoImage = "";
 // @ts-nocheck
+const logoImage = "";
+// @ts-nocheck
 import React from 'react';
 import { LayoutDashboard, Wallet, LineChart, Bot, TrendingUp, Settings, Sparkles, ShieldCheck, Compass, ShoppingBag, Users, Trophy, Activity, Layers, BarChart3, Scale, Rocket, MessageSquare, Brain, Beaker, Server, Mic, Zap } from 'lucide-react';
 import { toast } from 'sonner';
