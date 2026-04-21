@@ -1,3 +1,4 @@
+console.log('🚀 Neural Day Trader Initializing...');
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './app/App'
