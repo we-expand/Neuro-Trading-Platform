@@ -1,5 +1,5 @@
 {
-  "name": "neural-day-trader",
+  "name": "neural_day_trader",
   "private": true,
   "version": "0.0.1",
   "type": "module",
@@ -85,8 +85,8 @@
     "vite-plugin-node-polyfills": "^0.24.0",
     "xlsx": "^0.18.5",
     "zustand": "^5.0.12",
-    "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
   },
   "peerDependencies": {
     "react": "18.3.1",
