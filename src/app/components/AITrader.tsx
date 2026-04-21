@@ -20,8 +20,7 @@ export const AITrader = () => {
         </button>
       </div>
       <div className="mt-4 p-4 bg-[#111] rounded border border-[#222]">
-        <p className="text-[10px] text-gray-500 uppercase font-black">Risco Máximo</p>
-        <p className="text-lg font-mono text-blue-400">{(aiConfig?.maxContracts || 1.0).toFixed(2)} Lotes</p>
+        <p className="text-[10px] text-gray-500 uppercase">Limite: {(aiConfig?.maxContracts || 1.0).toFixed(2)} Lotes</p>
       </div>
     </div>
   );
