@@ -1,9 +1,8 @@
 import React from 'react';
-import { LayoutDashboard, Wallet, LineChart, Bot, TrendingUp, Settings, Sparkles, ShieldCheck, Compass, ShoppingBag, Users, Trophy, Activity, Layers, BarChart3, Scale, Rocket, MessageSquare, Brain, Beaker, Server, Mic, Zap, FileBarChart } from 'lucide-react';
+import { LayoutDashboard, Wallet, LineChart, Bot, TrendingUp, Settings, Sparkles, ShieldCheck, Compass, ShoppingBag, Users, Trophy, Activity, Layers, BarChart3, Scale, Rocket, MessageSquare, Brain, Beaker, Server, Mic, Zap } from 'lucide-react';
 import { toast } from 'sonner';
-import { NeuralLogo } from './NeuralLogo';
 
-type View = 'dashboard' | 'wallet' | 'funds' | 'assets' | 'chart' | 'ai-trader' | 'performance' | 'settings' | 'system' | 'dev-lab' | 'innovation' | 'strategy' | 'store' | 'partners' | 'prop-challenge' | 'social' | 'pyramiding' | 'competitive-analysis' | 'quantum-analysis' | 'ai-voice' | 'live-trading-test' | 'admin' | 'compliance-analysis' | 'launch-strategy' | 'trader-insights' | 'investor';
+type View = 'dashboard' | 'wallet' | 'funds' | 'assets' | 'chart' | 'ai-trader' | 'performance' | 'settings' | 'system' | 'dev-lab' | 'innovation' | 'strategy' | 'store' | 'partners' | 'prop-challenge' | 'social' | 'pyramiding' | 'competitive-analysis' | 'quantum-analysis' | 'ai-voice' | 'live-trading-test';
 
 interface SidebarProps {
   currentView: View;
@@ -41,7 +40,11 @@ export function Sidebar({ currentView, onViewChange, isAdmin, onLogout }: Sideba
           handleViewChange('dashboard');
         }}
       >
-        <NeuralLogo className="!w-[140px]" />
+        <img 
+          src={logoImage} 
+          alt="Neural Day Trader" 
+          className="w-16 h-16 object-contain"
+        />
       </div>
 
       {/* Main Navigation */}
@@ -181,19 +184,6 @@ export function Sidebar({ currentView, onViewChange, isAdmin, onLogout }: Sideba
               >
                 <MessageSquare className="w-5 h-5 shrink-0" />
                 <span className="text-sm font-medium tracking-wide">Insights Traders</span>
-              </button>
-
-              {/* Investor Deck */}
-              <button
-                onClick={() => handleViewChange('investor' as View)}
-                className={`w-full flex items-center gap-4 px-5 py-3.5 mx-auto rounded-xl transition-all duration-200 border border-transparent group ${
-                  currentView === 'investor'
-                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                    : 'text-slate-400 hover:bg-white/5 hover:text-emerald-400'
-                }`}
-              >
-                <FileBarChart className="w-5 h-5 shrink-0" />
-                <span className="text-sm font-medium tracking-wide">Deck Investidores</span>
               </button>
 
               {/* Quantum Analysis */}

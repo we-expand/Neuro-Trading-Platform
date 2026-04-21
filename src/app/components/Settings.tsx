@@ -84,7 +84,7 @@ export function Settings() {
         console.log('[Settings] 🔄 Carregando token do backend...');
         
         const response = await fetch(
-          `https://${projectId}.supabase.co/functions/v1/server/mt5-token/load?userId=${user.id}`,
+          `https://${projectId}.supabase.co/functions/v1/make-server-1dbacac6/mt5-token/load?userId=${user.id}`,
           {
             headers: {
               'Authorization': `Bearer ${publicAnonKey}`
@@ -121,7 +121,7 @@ export function Settings() {
     
     try {
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/server/save-metaapi-token`,
+        `https://${projectId}.supabase.co/functions/v1/make-server-1dbacac6/save-metaapi-token`,
         {
           method: 'POST',
           headers: {
@@ -173,7 +173,7 @@ export function Settings() {
     
     try {
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/server/clear-metaapi-token`,
+        `https://${projectId}.supabase.co/functions/v1/make-server-1dbacac6/clear-metaapi-token`,
         {
           method: 'DELETE',
           headers: {

@@ -154,7 +154,7 @@ export function MarketTicker() {
             if (metaData) {
               formatted.push({
                 symbol: asset.display,
-                price: metaData.last || metaData.bid || 0,
+                price: metaData.price,
                 change: metaData.changePercent
               });
             } else {

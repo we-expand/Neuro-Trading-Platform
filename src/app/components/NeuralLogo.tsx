@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface NeuralLogoProps {
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
   animated?: boolean;
 }
@@ -12,7 +12,6 @@ export const NeuralLogo: React.FC<NeuralLogoProps> = ({
   animated = true 
 }) => {
   const sizeMap = {
-    xs: 'w-12 h-auto',
     sm: 'w-24 h-auto',
     md: 'w-36 h-auto',
     lg: 'w-48 h-auto',
@@ -21,13 +20,11 @@ export const NeuralLogo: React.FC<NeuralLogoProps> = ({
 
   return (
     <div className={`relative inline-block ${sizeMap[size]} ${className}`}>
-      <svg
-        id="neural-logo"
-        xmlns="http://www.w3.org/2000/svg"
-        xmlnsXlink="http://www.w3.org/1999/xlink"
-        viewBox="0 10 320 220"
-        width="100%"
-        height="100%"
+      <svg 
+        id="neural-logo" 
+        xmlns="http://www.w3.org/2000/svg" 
+        xmlnsXlink="http://www.w3.org/1999/xlink" 
+        viewBox="0 -50 320 280"
         className="relative z-10"
       >
         <defs>

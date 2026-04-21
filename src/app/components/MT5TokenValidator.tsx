@@ -29,7 +29,7 @@ export function MT5TokenValidator() {
       // 🎯 ESTRATÉGIA 1: Tentar buscar do backend (se usuário logado)
       if (user?.id) {
         try {
-          const response = await fetch(`https://${projectId}.supabase.co/functions/v1/server/mt5-token/load?userId=${user.id}`, {
+          const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-1dbacac6/mt5-token/load?userId=${user.id}`, {
             headers: {
               'Authorization': `Bearer ${publicAnonKey}`
             }
