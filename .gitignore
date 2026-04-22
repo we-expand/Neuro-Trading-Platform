@@ -13,3 +13,5 @@ tmp
 .next
 coverage
 *.log
+.vercel
+.env*.local
